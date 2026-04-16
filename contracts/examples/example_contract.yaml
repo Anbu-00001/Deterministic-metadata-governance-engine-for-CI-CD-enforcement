@@ -1,0 +1,52 @@
+# Example ODCS 3.1 Data Contract
+# Dataset: orders — transactional order records for the e-commerce platform.
+
+datasetName: orders
+version: "1.0.0"
+owner: data-engineering@acme.com
+description: >
+  Transactional order records capturing every customer purchase on the
+  Acme e-commerce platform. Updated in near-real-time via CDC from the
+  primary OLTP database.
+
+columns:
+  - name: order_id
+    type: STRING
+    description: "Globally unique order identifier (UUID v4)."
+    is_primary_key: true
+    tags:
+      - identifier
+
+  - name: customer_id
+    type: STRING
+    description: "Foreign key referencing the customers table."
+    tags:
+      - identifier
+      - pii
+
+  - name: amount
+    type: DECIMAL
+    description: "Total order amount in USD, inclusive of tax."
+    tags:
+      - financial
+
+  - name: status
+    type: STRING
+    description: "Current order status: pending, confirmed, shipped, delivered, cancelled."
+    tags:
+      - operational
+
+  - name: created_at
+    type: TIMESTAMP
+    description: "UTC timestamp when the order was placed."
+    tags:
+      - temporal
+
+sla:
+  freshness: "15 minutes"
+  availability: "99.9%"
+
+tags:
+  - transactional
+  - financial
+  - tier-1

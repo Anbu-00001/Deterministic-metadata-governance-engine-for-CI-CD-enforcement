@@ -1,0 +1,109 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: elasticsearch:8.10.4
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  openmetadata-server:
+    image: openmetadata/server:1.12.0
+    environment:
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      SERVER_HOST_API_URL: http://openmetadata-server:8585/api
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_USER_PASSWORD: ${MYSQL_PASSWORD}
+      DB_SCHEME: mysql+pymysql
+      DB_NAME: ${MYSQL_DATABASE}
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      ELASTICSEARCH_SCHEME: http
+      AUTHENTICATION_PROVIDER: no-auth
+    ports:
+      - "8585:8585"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  mcp-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    environment:
+      OPENMETADATA_HOST: http://openmetadata-server
+      OPENMETADATA_PORT: "8585"
+      OPENMETADATA_JWT_TOKEN: ${OPENMETADATA_JWT_TOKEN}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - openmetadata-server
+      - qdrant
+    env_file:
+      - .env
+
+  hephaestus-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8001
+    environment:
+      OPENMETADATA_HOST: http://openmetadata-server
+      OPENMETADATA_PORT: "8585"
+      OPENMETADATA_JWT_TOKEN: ${OPENMETADATA_JWT_TOKEN}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+    ports:
+      - "8001:8001"
+    depends_on:
+      - openmetadata-server
+      - qdrant
+    env_file:
+      - .env
+
+volumes:
+  mysql_data:
+  es_data:
+  qdrant_data:

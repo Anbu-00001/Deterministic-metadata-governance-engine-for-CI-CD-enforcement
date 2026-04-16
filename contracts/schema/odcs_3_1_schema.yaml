@@ -1,0 +1,52 @@
+# ODCS 3.1 Contract Schema
+#
+# This defines the required fields for a valid data contract
+# following the Open Data Contract Standard (ODCS) version 3.1.
+# Used by the data_contract_validation skill for validation.
+
+required_fields:
+  - field: datasetName
+    type: string
+    required: true
+    description: "Unique name identifying the dataset."
+
+  - field: version
+    type: string
+    required: true
+    description: "Semantic version of the data contract (e.g. '1.0.0')."
+
+  - field: owner
+    type: string
+    required: true
+    description: "Team or individual responsible for the dataset."
+
+  - field: columns
+    type: list
+    required: true
+    description: "List of column definitions in the dataset."
+    item_required_fields:
+      - field: name
+        type: string
+        required: true
+        description: "Column identifier."
+      - field: type
+        type: string
+        required: true
+        description: "Data type of the column (e.g. 'STRING', 'INTEGER', 'TIMESTAMP')."
+
+optional_fields:
+  - field: description
+    type: string
+    description: "Human-readable description of the dataset."
+
+  - field: sla
+    type: object
+    description: "Service-level agreement for data freshness and quality."
+
+  - field: tags
+    type: list
+    description: "Classification tags (e.g. 'pii', 'financial', 'public')."
+
+  - field: quality_tests
+    type: list
+    description: "List of data quality test definitions."

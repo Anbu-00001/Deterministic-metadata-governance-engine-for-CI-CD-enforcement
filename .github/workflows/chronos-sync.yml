@@ -1,0 +1,47 @@
+name: Chronos Sync
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Catalog Sink Sync
+    runs-on: ubuntu-latest
+
+    # Only run when the commit was made by the OpenMetadata sink.
+    if: startsWith(github.event.head_commit.message, 'chore(openmetadata-sink):')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Hephaestus
+        run: pip install -e .
+
+      - name: Run Sync Engine
+        env:
+          OPENMETADATA_HOST: ${{ secrets.OPENMETADATA_HOST }}
+          OPENMETADATA_PORT: ${{ secrets.OPENMETADATA_PORT }}
+          OPENMETADATA_JWT_TOKEN: ${{ secrets.OPENMETADATA_JWT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_PATH: ${{ github.workspace }}
+        run: |
+          python -c "
+          from sync.github_sink_listener import GitHubSinkListener
+          listener = GitHubSinkListener(repo_path='${{ github.workspace }}')
+          commits = listener.scan_for_sink_commits(max_commits=10)
+          for c in commits:
+              listener.apply_commit(c)
+          print(f'Processed {len(commits)} sink commit(s).')
+          "

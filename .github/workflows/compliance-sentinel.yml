@@ -1,0 +1,52 @@
+name: Compliance Sentinel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sentinel:
+    name: Forge Governance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Hephaestus
+        run: pip install -e .
+
+      - name: Compute changed files
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ',')
+          echo "files=${CHANGED}" >> "$GITHUB_OUTPUT"
+
+      - name: Run Sentinel
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          CHANGED_FILES: ${{ steps.changes.outputs.files }}
+          OPENMETADATA_HOST: ${{ secrets.OPENMETADATA_HOST }}
+          OPENMETADATA_PORT: ${{ secrets.OPENMETADATA_PORT }}
+          OPENMETADATA_JWT_TOKEN: ${{ secrets.OPENMETADATA_JWT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QDRANT_HOST: ${{ secrets.QDRANT_HOST }}
+          QDRANT_PORT: ${{ secrets.QDRANT_PORT }}
+          FGS_BLOCK_THRESHOLD: ${{ secrets.FGS_BLOCK_THRESHOLD }}
+          SEMANTIC_DRIFT_THRESHOLD: ${{ secrets.SEMANTIC_DRIFT_THRESHOLD }}
+          LAMBDA_DECAY: ${{ secrets.LAMBDA_DECAY }}
+          EMBEDDING_MODEL_NAME: ${{ secrets.EMBEDDING_MODEL_NAME }}
+        run: hephaestus-sentinel run-sentinel
