@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -20,7 +21,7 @@ from rich.table import Table
 
 from config import settings
 from sentinel.core.blast_radius import calculate_blast_radius
-from sentinel.core.diff_engine import calculate_change_magnitude
+from sentinel.core.diff_engine import calculate_change_magnitude, SchemaChange, VolumeChange
 from sentinel.core.fgs import ColumnMetadata, calculate_fgs
 from sentinel.report import build_pr_comment
 from sentinel.skills.skills_loader import SkillsLoader
@@ -38,6 +39,7 @@ async def _run_sentinel_async(
     repo_owner: str,
     repo_name: str,
     changed_files: list[str],
+    input_dir: Optional[Path] = None,
 ) -> bool:
     """Core async orchestration loop.
 
@@ -49,39 +51,68 @@ async def _run_sentinel_async(
 
     loader = SkillsLoader()
     results: list[dict] = []
+    
+    # Optional offline data loading
+    offline_metadata = {}
+    offline_lineage = {}
+    offline_schema = {}
+    offline_volume = {}
+    
+    if input_dir and input_dir.exists():
+        from ingestion.metadata_loader import load_metadata
+        from ingestion.lineage_loader import load_lineage
+        from ingestion.schema_loader import load_schema_changes
+        from ingestion.volume_loader import load_volume_changes
+        
+        try:
+            offline_metadata = load_metadata(input_dir / "metadata.json")
+            offline_lineage = load_lineage(input_dir / "lineage.json")
+            offline_schema = load_schema_changes(input_dir / "schema.json")
+            offline_volume = load_volume_changes(input_dir / "volume.json")
+            console.print("[green]Loaded offline ingestion data successfully.[/green]")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not load some offline data: {e}[/yellow]")
 
     for fqn in changed_files:
         entity_result: dict = {"entity_fqn": fqn}
+        columns_data = []
 
         # ── Fetch entity ────────────────────────────────────
-        try:
-            entity = await get_entity("tables", fqn)
-        except RuntimeError as exc:
-            console.print(f"[red]✗ Could not fetch entity {fqn}: {exc}[/red]")
-            entity_result["fgs"] = {
-                "score": 0.0,
-                "compliance_score": 0.0,
-                "blast_penalty": 0.0,
-                "blast_radius": 0,
-                "is_blocked": True,
-                "explanation": f"Entity fetch failed: {exc}",
-            }
-            results.append(entity_result)
-            continue
-
-        entity_id: str = entity.get("id", "")
+        if input_dir and fqn in offline_metadata:
+             columns_data = [{"name": c.name, "description": c.description, "tags": getattr(c, "governance_tags", []), "criticality_tier": getattr(c, "tier", 3)} for c in offline_metadata[fqn]]
+        else:
+            try:
+                entity = await get_entity("tables", fqn)
+                columns_data = entity.get("columns", [])
+            except RuntimeError as exc:
+                console.print(f"[red]✗ Could not fetch entity {fqn}: {exc}[/red]")
+                entity_result["fgs"] = {
+                    "score": 0.0,
+                    "compliance_score": 0.0,
+                    "blast_penalty": 0.0,
+                    "blast_radius": 0,
+                    "is_blocked": True,
+                    "explanation": f"Entity fetch failed: {exc}",
+                }
+                results.append(entity_result)
+                continue
 
         # ── Lineage + blast radius ──────────────────────────
-        try:
-            lineage_graph = await get_entity_lineage("tables", entity_id)
-        except RuntimeError:
-            lineage_graph = {}
+        if input_dir:
+            lineage_graph = offline_lineage.edges if hasattr(offline_lineage, "edges") else {}
+        else:
+            try:
+                # Need entity_id which we only have online
+                entity_id = entity.get("id", "")
+                lineage_graph = await get_entity_lineage("tables", entity_id)
+            except RuntimeError:
+                lineage_graph = {}
         blast_radius = calculate_blast_radius(lineage_graph)
 
         # ── Build column metadata ───────────────────────────
         columns: list[ColumnMetadata] = []
         column_names: list[str] = []
-        for col in entity.get("columns", []):
+        for col in columns_data:
             col_name = col.get("name", "")
             column_names.append(col_name)
             has_description = bool(col.get("description", "").strip())
@@ -111,18 +142,21 @@ async def _run_sentinel_async(
             "explanation": fgs_result.explanation,
         }
 
-        # ── Change magnitude (schema diff against self for now) ─
-        schema_diff = {
-            "added_columns": [],
-            "removed_columns": [],
-            "modified_columns": [],
-        }
+        # ── Change magnitude ─────────────────────────────────
         total_columns = len(columns) if columns else 1
+        
+        if input_dir and fqn in offline_schema and fqn in offline_volume:
+            sch = offline_schema[fqn]
+            vol = offline_volume[fqn]
+            schema_change = SchemaChange(added_columns=sch.added_columns, removed_columns=sch.removed_columns, modified_columns=sch.modified_columns, total_columns_before=sch.total_columns_before)
+            volume_change = VolumeChange(changed_rows=vol.changed_rows, total_rows=vol.total_rows)
+        else:
+            schema_change = SchemaChange(added_columns=0, removed_columns=0, modified_columns=0, total_columns_before=total_columns)
+            volume_change = VolumeChange(changed_rows=0, total_rows=1)
+            
         diff_result = calculate_change_magnitude(
-            schema_diff=schema_diff,
-            total_columns=total_columns,
-            changed_rows=0,
-            total_rows=1,
+            schema_change=schema_change,
+            volume_change=volume_change,
             alpha=settings.alpha_structural,
             beta=settings.beta_volume,
         )
@@ -133,7 +167,8 @@ async def _run_sentinel_async(
 
         # ── Skills ───────────────────────────────────────────
         skill_context = {
-            "entity": entity,
+            "entity": {"columns": columns_data} if input_dir else entity,
+            "columns": columns_data, # Added to support PII skill description scanning
             "column_names": column_names,
             "lineage_graph": lineage_graph,
             "entity_fqn": fqn,
@@ -210,6 +245,11 @@ def run_sentinel(
         envvar="CHANGED_FILES",
         help="Comma-separated list of changed entity FQNs.",
     ),
+    input_dir: Optional[Path] = typer.Option(
+        None,
+        "--input-dir",
+        help="Directory containing JSON files for offline testing.",
+    ),
 ) -> None:
     """Run the Forge Governance Sentinel against a pull request.
 
@@ -221,8 +261,17 @@ def run_sentinel(
     owner = repo_owner or settings.github_repo_owner
     name = repo_name or settings.github_repo_name
     fqns: list[str] = []
+    
+    if input_dir and input_dir.exists():
+        from ingestion.metadata_loader import load_metadata
+        try:
+            meta = load_metadata(input_dir / "metadata.json")
+            fqns = list(meta.keys())
+        except Exception:
+            pass
+            
     if changed_files:
-        fqns = [f.strip() for f in changed_files.split(",") if f.strip()]
+        fqns.extend([f.strip() for f in changed_files.split(",") if f.strip()])
 
     if not fqns:
         console.print("[yellow]No changed files provided — nothing to evaluate.[/yellow]")
@@ -234,7 +283,7 @@ def run_sentinel(
     )
 
     all_passed = asyncio.run(
-        _run_sentinel_async(pr_number, owner, name, fqns)
+        _run_sentinel_async(pr_number, owner, name, fqns, input_dir=input_dir)
     )
 
     if not all_passed:

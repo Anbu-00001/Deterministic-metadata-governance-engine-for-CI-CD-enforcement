@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from sentinel.diff_engine import SchemaChange
+from sentinel.core.diff_engine import SchemaChange
 
 def load_schema_changes(path: Path) -> dict[str, SchemaChange]:
     if not path.exists():

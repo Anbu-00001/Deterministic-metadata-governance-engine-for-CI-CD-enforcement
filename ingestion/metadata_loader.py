@@ -1,8 +1,15 @@
 import json
 from pathlib import Path
-from sentinel.fgs import ColumnMetadata
+from dataclasses import dataclass
 
-def load_metadata(path: Path) -> dict[str, list[ColumnMetadata]]:
+@dataclass
+class IngestedColumn:
+    name: str
+    description: str
+    governance_tags: list[str]
+    tier: int
+
+def load_metadata(path: Path) -> dict[str, list[IngestedColumn]]:
     if not path.exists():
         raise FileNotFoundError(f"Metadata file not found: {path}")
     
@@ -37,7 +44,7 @@ def load_metadata(path: Path) -> dict[str, list[ColumnMetadata]]:
             except (ValueError, TypeError):
                 tier = 0
                 
-            columns.append(ColumnMetadata(
+            columns.append(IngestedColumn(
                 name=name,
                 description=description,
                 governance_tags=tags,

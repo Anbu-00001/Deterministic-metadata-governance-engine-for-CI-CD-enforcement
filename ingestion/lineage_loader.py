@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from sentinel.blast_radius import LineageGraph
+from sentinel.core.blast_radius import LineageGraph
 
 def load_lineage(path: Path) -> LineageGraph:
     if not path.exists():

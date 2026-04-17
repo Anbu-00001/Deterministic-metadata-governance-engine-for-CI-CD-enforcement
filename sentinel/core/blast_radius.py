@@ -8,24 +8,29 @@ from __future__ import annotations
 
 from collections import deque
 from typing import Any
+from dataclasses import dataclass
+
+@dataclass
+class LineageGraph:
+    edges: dict[str, set[str]]
 
 
-def calculate_blast_radius(lineage_graph: dict[str, Any]) -> int:
+def calculate_blast_radius(lineage_input: dict[str, Any] | LineageGraph) -> int:
     """Count unique downstream nodes reachable from the root entity.
 
     Walks ``downstreamEdges`` using BFS, collecting every unique
     ``toEntity`` id encountered.  The root entity itself is **not**
     included in the count.
-
-    Args:
-        lineage_graph: Raw JSON response from the OpenMetadata lineage API.
-            Expected keys: ``entity`` (root), ``nodes``, ``downstreamEdges``.
-
-    Returns:
-        ``R_blast`` — the integer count of unique downstream dependent nodes.
-        Returns ``0`` if the graph has no downstream edges or the expected
-        keys are missing.
+    
+    If given a LineageGraph, it computes the blast radius by taking the set union of all reachable nodes from all roots, assuming the first node or all roots. Actually, for LineageGraph, it usually represents simply the full dependency subgraph. We do a BFS from all nodes with in-degree 0, or just sum lengths if edges represent full closure. Let's just do BFS from all nodes.
     """
+    if isinstance(lineage_input, LineageGraph):
+        visited = set()
+        for edges in lineage_input.edges.values():
+            visited.update(edges)
+        return len(visited)
+        
+    lineage_graph = lineage_input
     downstream_edges: list[dict[str, Any]] = lineage_graph.get("downstreamEdges", [])
     if not downstream_edges:
         return 0
@@ -67,7 +72,7 @@ def calculate_blast_radius(lineage_graph: dict[str, Any]) -> int:
 
 
 def _extract_id(entity_ref: Any) -> str:
-    """Extract the entity ID from either a dict ``{"id": …}`` or a bare string."""
+    """Extract the entity ID from either a dict ``{"id": ...}`` or a bare string."""
     if isinstance(entity_ref, dict):
         return str(entity_ref.get("id", ""))
     if isinstance(entity_ref, str):

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from sentinel.diff_engine import VolumeChange
+from sentinel.core.diff_engine import VolumeChange
 
 def load_volume_changes(path: Path) -> dict[str, VolumeChange]:
     if not path.exists():
