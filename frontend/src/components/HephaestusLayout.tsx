@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchHealth } from '../lib/api';
 import { useGovernanceStore } from '../store/useGovernanceStore';
+import { LiquidGlassBackground, GlassEffect } from './ui/liquid-glass';
 import { 
   Search, Settings, Bell, User, Zap, GitBranch, Shield, 
   TerminalSquare, FileText, LifeBuoy, Activity, Play, RefreshCw, Layers
@@ -31,10 +32,11 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#0B0F14] text-[#fdfdfe] font-sans selection:bg-[#00A3FF] selection:text-white">
-      
-      {/* TOP NAV - Stripe Metric Style */}
-      <header className="h-[56px] flex items-center justify-between px-6 border-b border-[rgba(255,255,255,0.06)] bg-[#0B0F14]/80 backdrop-blur-xl z-50 shrink-0">
+    <LiquidGlassBackground>
+      <div className="flex flex-col h-screen w-screen text-[#fdfdfe] font-sans selection:bg-[#00A3FF] selection:text-white relative">
+        
+        {/* TOP NAV - Stripe Metric Style */}
+        <header className="h-[56px] flex items-center justify-between px-6 border-b border-[rgba(255,255,255,0.06)] bg-[#0B0F14]/40 backdrop-blur-xl z-50 shrink-0">
         <div className="flex items-center gap-12">
           <Link href="/" className="flex items-center gap-2.5 cursor-pointer">
             <div className="w-6 h-6 bg-[#00A3FF] rounded flex items-center justify-center shadow-[0_0_15px_rgba(0,163,255,0.2)]">
@@ -84,9 +86,9 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* SIDEBAR - Clean Linear Style */}
-        <aside className="w-[200px] flex flex-col justify-between border-r border-[rgba(255,255,255,0.06)] bg-[#0B0F14] shrink-0 px-4 py-8 z-40">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* SIDEBAR - Clean Linear Style */}
+          <aside className="w-[200px] flex flex-col justify-between border-r border-[rgba(255,255,255,0.06)] bg-[#0B0F14]/40 backdrop-blur-md shrink-0 px-4 py-8 z-40">
           <div className="flex flex-col gap-8">
             <div className="flex items-center gap-3 px-2">
                <div className="flex flex-col">
@@ -146,7 +148,7 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* MAIN AREA */}
-        <main className="flex-1 overflow-hidden bg-[#0B0F14] relative dot-pattern">
+        <main className="flex-1 overflow-hidden relative dot-pattern bg-transparent">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
@@ -163,7 +165,7 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
       </div>
       
       {/* Footer Area - Minimal */}
-      <footer className="h-[28px] flex items-center justify-between px-6 bg-[#0B0F14] border-t border-[rgba(255,255,255,0.06)] shrink-0 text-[10px] font-medium text-[#64707D]">
+      <footer className="h-[28px] flex items-center justify-between px-6 bg-[#0B0F14]/40 backdrop-blur-md border-t border-[rgba(255,255,255,0.06)] shrink-0 text-[10px] font-medium text-[#64707D]">
         <div className="flex items-center gap-6">
            <span className="flex items-center gap-2">
               <span className="text-[#8A949E]">Session</span>
@@ -179,5 +181,6 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
         </div>
       </footer>
     </div>
-  );
+  </LiquidGlassBackground>
+);
 }
