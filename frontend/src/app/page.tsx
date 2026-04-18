@@ -1,28 +1,54 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useHephaestus, api } from '../store/HephaestusContext';
 import { 
-  CheckCircle2, AlertCircle, Expand, Activity, Loader2, Zap, ArrowRight, ShieldCheck, Info
+  Loader2, Zap, ArrowRight, ShieldCheck, Info, Activity, Database, GitBranch
 } from 'lucide-react';
-
-import { useGovernanceStore } from '../store/useGovernanceStore';
-import { useMousePosition } from '../hooks/useMouse';
 import { FgsGauge3D } from '../components/FgsGauge3D';
 import { BlastRadius3D } from '../components/BlastRadius3D';
-import { ChangeMagnitudeBars } from '../components/ChangeMagnitudeBars';
 
 export default function Dashboard() {
-  const { result, loading, error, runEvaluation, applyOptimization, optimizationPreview } = useGovernanceStore();
-  const mouse = useMousePosition();
+  const { state, dispatch } = useHephaestus();
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const currentRequestId = useRef(0);
 
-  useEffect(() => {
-    if (!result) runEvaluation();
-  }, []);
+  const handleAnalyze = async () => {
+    // Phase 4: Primary Flow + Phase 9 Stale Request Guard
+    const id = ++currentRequestId.current;
+    
+    dispatch({ type: 'EVALUATE_START' });
+    try {
+      const result = await api.evaluate({});
+      
+      if (id !== currentRequestId.current) return;
+      
+      dispatch({ type: 'EVALUATE_SUCCESS', payload: result });
+      
+      // Auto-scroll to results section (Phase 4)
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      
+    } catch (err: any) {
+      if (id !== currentRequestId.current) return;
+      dispatch({ type: 'EVALUATE_FAILURE', payload: err.message });
+    }
+  };
 
-  const score = result?.fgs?.score || 0;
-  const isPass = !result?.fgs?.is_blocked ?? true;
-  const displayScore = optimizationPreview ? optimizationPreview.after : score;
+  const handleApplySuggestion = async (suggestionId: string) => {
+    dispatch({ type: 'OPTIMIZE_START' });
+    try {
+       const res = await api.optimize({ suggestion_id: suggestionId });
+       dispatch({ type: 'OPTIMIZE_SUCCESS', payload: res });
+       alert(`Applied optimization: ${res.message}`);
+    } catch (err: any) {
+       dispatch({ type: 'OPTIMIZE_FAILURE', payload: err.message });
+    }
+  };
+
+  const { result, loading } = state;
 
   return (
     <div className="flex flex-col gap-12 max-w-[1400px] mx-auto pb-16">
@@ -30,121 +56,136 @@ export default function Dashboard() {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-end">
         <div className="flex flex-col gap-2">
-           <div className="flex items-center gap-3 text-metadata uppercase tracking-widest opacity-60">
+           <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest opacity-60">
               <Activity className="w-3.5 h-3.5" />
               <span>Pipeline Intelligence</span>
            </div>
-           <h1>Infrastructure Overview</h1>
+           <h1 className="text-[32px] font-bold tracking-tighter">Infrastructure Overview</h1>
         </div>
         <div className="flex gap-3">
-          <button className="btn-secondary">Export Report</button>
-          <button className="btn-primary" onClick={() => runEvaluation()}>Run Audit</button>
+          <button 
+            className="btn-primary" 
+            onClick={handleAnalyze}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Run Engine Audit"}
+          </button>
         </div>
       </div>
 
-      <AnimatePresence>
-        {loading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0B0F14]/40 backdrop-blur-[2px] z-[100] flex items-center justify-center"
-          >
-             <div className="premium-card p-lg flex items-center gap-4 bg-[#12171D] border border-[rgba(255,255,255,0.1)]">
-                <Loader2 className="w-5 h-5 text-[#00A3FF] animate-spin" />
-                <span className="text-body font-medium">Running Governance Sentinel...</span>
-             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* TOP ROW: Metric Cards */}
-      <div className="grid grid-cols-12 gap-lg">
+      <div className="grid grid-cols-12 gap-6" ref={resultsRef}>
         
         {/* CENTERPIECE: Governance Score */}
-        <div className="col-span-12 lg:col-span-5 premium-card p-xl flex flex-col items-center justify-center relative overflow-hidden h-[480px]">
+        <div className="col-span-12 lg:col-span-5 premium-card p-8 min-h-[480px] flex flex-col items-center justify-center relative overflow-hidden bg-[#12171D]">
            <div className="absolute top-6 left-6 flex items-center gap-2">
-              <h3 className="text-xs">Governance Health</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64707D]">Governance Health</h3>
               <Info className="w-3.5 h-3.5 text-[#64707D] cursor-help" />
            </div>
            
-           <div className="w-full flex-1 flex items-center justify-center">
-             <FgsGauge3D score={displayScore} />
+           <div className="w-full flex-1 flex flex-col items-center justify-center">
+             {loading ? (
+                <div className="flex flex-col items-center gap-6">
+                   <div className="w-48 h-48 rounded-full border-[10px] border-[#00A3FF]/5 border-t-[#00A3FF] animate-spin shadow-[0_0_50px_rgba(0,163,255,0.1)]" />
+                   <div className="flex flex-col items-center gap-1">
+                      <span className="text-[13px] font-bold text-[#00A3FF] tracking-[0.2em] uppercase">Computing FGS</span>
+                      <span className="text-[10px] text-[#64707D] animate-pulse">Scanning metadata clusters...</span>
+                   </div>
+                </div>
+             ) : result ? (
+               <FgsGauge3D score={result.fgs_score} />
+             ) : (
+               <div className="flex flex-col items-center text-center gap-4 opacity-30">
+                  <Database className="w-12 h-12" />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em]">Source Telemetry Required</span>
+               </div>
+             )}
            </div>
 
-           <div className="w-full grid grid-cols-2 border-t border-[rgba(255,255,255,0.06)] pt-xl mt-4">
+           <div className="w-full grid grid-cols-2 border-t border-[rgba(255,255,255,0.06)] pt-8 mt-4">
               <div className="flex flex-col items-center border-r border-[rgba(255,255,255,0.06)]">
-                 <span className="text-metadata mb-1">DATA RELIABILITY</span>
-                 <span className="text-[18px] font-semibold text-[#10B981]">99.98%</span>
+                 <span className="text-[10px] font-bold tracking-[0.2em] text-[#64707D] uppercase mb-1">SCORE</span>
+                 <span className="text-[24px] font-black text-white">{result ? result.fgs_score.toFixed(1) : "—"}</span>
               </div>
               <div className="flex flex-col items-center">
-                 <span className="text-metadata mb-1">CHANGE VELOCITY</span>
-                 <span className="text-[18px] font-semibold text-[#00A3FF]">+12.4%</span>
+                 <span className="text-[10px] font-bold tracking-[0.2em] text-[#64707D] uppercase mb-1">DECISION</span>
+                 <span className={`text-[20px] font-bold ${result?.decision === 'APPROVE' ? 'text-[#10B981]' : result?.decision === 'REJECT' ? 'text-[#EF4444]' : 'text-[#8A949E]'}`}>
+                    {result?.decision || "PENDING"}
+                 </span>
               </div>
            </div>
         </div>
 
         {/* TOP RIGHT COLUMN */}
-        <div className="col-span-12 lg:col-span-7 flex flex-col gap-lg">
+        <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
            
            {/* Decision Panel */}
-           <div className="premium-card p-lg flex items-center justify-between h-[160px]">
+           <div className="premium-card p-8 flex items-center justify-between min-h-[160px] bg-[#12171D]">
               <div className="flex flex-col gap-2">
-                 <h3 className="text-xs">Verdict Output</h3>
-                 <div className="flex items-baseline gap-4 mt-2">
-                    <span className={`text-[42px] font-bold tracking-tighter ${isPass ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-                      {isPass ? 'PASS' : 'BLOCK'}
-                    </span>
-                    <span className="text-body font-medium opacity-60 mb-2">Confidence: 92.4%</span>
-                 </div>
-              </div>
-              <div className="flex flex-col gap-3 max-w-[280px]">
-                 <p className="text-body text-right">
-                   {result?.fgs?.explanation || 'Sentinel is monitoring current metadata estate deployments.'}
-                 </p>
-                 {isPass && (
-                   <div className="flex items-center gap-2 text-[#10B981] justify-end">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span className="text-[11px] font-bold tracking-wider">SECURE RELEASE VERIFIED</span>
-                   </div>
+                 <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64707D]">Verdict Engine</h3>
+                 {loading ? (
+                    <div className="h-12 w-48 bg-white/5 animate-pulse rounded-lg" />
+                 ) : result ? (
+                    <div className="flex items-baseline gap-4 mt-2">
+                       <span className={`text-[42px] font-black tracking-tighter ${result.decision === 'APPROVE' ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                         {result.decision}
+                       </span>
+                    </div>
+                 ) : (
+                    <span className="text-[24px] font-bold text-white/10 mt-2 uppercase tracking-tighter">Awaiting logic sweep</span>
                  )}
               </div>
+              {result && !loading && (
+                 <div className="flex flex-col gap-3 max-w-[280px]">
+                    <div className="flex items-center gap-2 text-[#10B981] justify-end">
+                       <ShieldCheck className="w-4 h-4" />
+                       <span className="text-[10px] font-black tracking-widest">SECURE_ENVIRONMENT_LOCKED</span>
+                    </div>
+                 </div>
+              )}
            </div>
 
-           {/* Risk & Change Magnitude Row */}
-           <div className="grid grid-cols-2 gap-lg flex-1">
-              <div className="premium-card p-lg flex flex-col">
-                 <h3 className="text-xs mb-8">Risk Breakdown</h3>
+           {/* Risk Breakdown Row */}
+           <div className="premium-card p-8 flex flex-col flex-1 bg-[#12171D]">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64707D] mb-8">Risk Vector Mapping</h3>
+              <div className="grid grid-cols-2 gap-12">
                  <div className="flex flex-col gap-6">
-                   {[
-                     { name: 'Security Integrity', val: 20, color: '#00A3FF' },
-                     { name: 'Resource Allocation', val: 60, color: '#F59E0B' },
-                     { name: 'System Performance', val: 15, color: '#00A3FF' }
-                   ].map(risk => (
-                     <div key={risk.name} className="flex flex-col gap-2">
-                        <div className="flex justify-between text-[11px] font-semibold">
-                           <span className="text-[#8A949E] uppercase tracking-wider">{risk.name}</span>
-                           <span className="text-[#64707D]">{risk.val}%</span>
-                        </div>
-                        <div className="w-full h-1 bg-[rgba(255,255,255,0.03)] rounded-full overflow-hidden">
-                           <motion.div 
-                              initial={{ width: 0 }}
-                               animate={{ width: `${risk.val}%` }}
-                               className="h-full rounded-full"
-                               style={{ backgroundColor: risk.color }}
-                           />
-                        </div>
-                     </div>
-                   ))}
+                    {loading ? [1,2,3].map(i => (
+                      <div key={i} className="flex flex-col gap-2">
+                         <div className="h-2 w-full bg-white/5 animate-pulse rounded" />
+                         <div className="h-1 w-1/2 bg-white/3 animate-pulse rounded" />
+                      </div>
+                    )) : 
+                     result ? Object.entries(result.risk).map(([key, val]) => (
+                       <div key={key} className="flex flex-col gap-2">
+                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                             <span className="text-[#8A949E]">{key.replace(/_/g, ' ')}</span>
+                             <span className="text-white">{val}%</span>
+                          </div>
+                          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: `${val}%` }}
+                               className={`h-full ${val > 50 ? 'bg-[#EF4444]' : val > 30 ? 'bg-[#F59E0B]' : 'bg-[#00A3FF]'}`}
+                             />
+                          </div>
+                       </div>
+                    )) : (
+                       <div className="flex-1 flex flex-col items-center justify-center opacity-10 py-10">
+                          <span className="text-[10px] font-black tracking-[0.3em] uppercase">No Risk Data</span>
+                       </div>
+                    )}
                  </div>
-              </div>
-
-              <div className="premium-card p-lg flex flex-col">
-                 <h3 className="text-xs mb-8">Drift magnitude</h3>
-                 <div className="flex-1 flex items-end h-[100px]">
-                    <ChangeMagnitudeBars data={[result?.change_magnitude?.magnitude || 0.4, 0.7, 0.5, 0.9, 0.6]} />
+                 <div className="flex flex-col justify-between border-l border-white/5 pl-12">
+                    <div className="flex flex-col gap-2">
+                       <span className="text-[10px] font-black text-[#64707D] uppercase tracking-widest">Blast Radius</span>
+                       <span className="text-[42px] font-black text-white leading-none tabular-nums">{result ? result.blast_radius : "0"}</span>
+                       <span className="text-[11px] text-[#8A949E] font-medium leading-relaxed">
+                          {result?.blast_radius === 0 ? "No downstream impact detected." : "Potential nodes affected by this deployment."}
+                       </span>
+                    </div>
+                    <button className="w-full btn-secondary text-[10px] font-black uppercase tracking-widest py-3">Audit Details</button>
                  </div>
-                 <p className="text-metadata mt-6 opacity-60">Comparative historical drift analysis</p>
               </div>
            </div>
 
@@ -152,76 +193,67 @@ export default function Dashboard() {
       </div>
 
       {/* SECOND ROW: Analysis & Lineage */}
-      <div className="grid grid-cols-12 gap-lg">
+      <div className="grid grid-cols-12 gap-6">
         
-        {/* INPUT CONTEXT */}
-        <div className="col-span-12 lg:col-span-4 premium-card p-lg flex flex-col h-[500px]">
-           <h3 className="text-xs mb-8">Discovery Context</h3>
-           <div className="flex flex-col gap-1 overflow-y-auto pr-2 scrollbar-hide">
-              {result ? (
-                <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[#0B0F14] hover:bg-[#12171D] transition-colors cursor-pointer group">
-                   <div className="flex justify-between items-center mb-4">
-                      <span className="font-mono text-xs font-bold text-white group-hover:text-[#00A3FF] transition-colors uppercase">{result.entity_fqn}</span>
-                      <div className={`status-indicator ${result.fgs.is_blocked ? 'bg-[#EF4444]' : 'bg-[#10B981]'}`} />
-                   </div>
-                   <div className="flex flex-col gap-4">
-                      <div className="flex justify-between items-center text-metadata">
-                         <span>Compliance Score</span>
-                         <span className="text-white">{(result.fgs.compliance_score * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="w-full h-[1px] bg-[rgba(255,255,255,0.04)]" />
-                      <div className="flex justify-between items-center text-metadata">
-                         <span>Blast Sensitivity</span>
-                         <span className="text-[#F59E0B] font-bold">{result.fgs.blast_radius}</span>
-                      </div>
-                   </div>
+        {/* LINEAGE TOPOLOGY */}
+        <div className="col-span-12 lg:col-span-8 premium-card overflow-hidden h-[500px] flex flex-col relative bg-[#12171D]">
+           <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64707D]">Lineage Topology</h3>
+              {loading && <div className="w-2 h-2 rounded-full bg-[#00A3FF] animate-ping" />}
+           </div>
+           
+           <div className="flex-1 relative">
+              {loading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/40 backdrop-blur-sm z-20">
+                   <Loader2 className="w-8 h-8 animate-spin text-[#00A3FF]" />
+                   <span className="text-[11px] font-black tracking-[0.3em] uppercase animate-pulse">Resolving Lineage...</span>
                 </div>
+              ) : result ? (
+                <BlastRadius3D data={result.lineage_graph} />
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-[#64707D] gap-4">
-                   <Zap className="w-6 h-6 opacity-20" />
-                   <span className="text-metadata italic">Awaiting source telemetry...</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.02)_0%,_transparent_70%)]">
+                   <GitBranch className="w-16 h-16 mb-4" />
+                   <span className="text-[11px] font-black uppercase tracking-[0.3em]">Topology Offline</span>
                 </div>
               )}
            </div>
         </div>
 
-        {/* LINEAGE TOPOLOGY */}
-        <div className="col-span-12 lg:col-span-5 premium-card overflow-hidden h-[500px] flex flex-col relative">
-           <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
-              <h3 className="text-xs">Lineage Topology</h3>
-              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-           </div>
-           <div className="flex-1 canvas-bg relative group">
-              <BlastRadius3D data={result?.fgs} />
-              <div className="absolute bottom-6 right-6 z-10 p-2 rounded-lg bg-[#12171D] border border-[rgba(255,255,255,0.06)] cursor-pointer hover:border-white transition-all text-[#64707D] hover:text-white">
-                 <Expand className="w-4 h-4" />
-              </div>
-           </div>
-        </div>
-
-        {/* RECOMMENDATIONS */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col gap-lg">
-           <div className="premium-card p-lg flex-1 bg-gradient-to-br from-[#12171D] to-[#0B0F14] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A3FF]/5 blur-3xl pointer-events-none" />
-              <div className="flex items-center gap-3 mb-8">
-                <Zap className="w-4 h-4 text-[#F59E0B]" />
-                <h3 className="text-xs">Smart Suggestion</h3>
-              </div>
-              <p className="text-body leading-relaxed mb-8 font-medium">
-                Detected high impact potential in <span className="text-white border-b border-[#00A3FF]/40 pb-0.5">shard_key_01</span>. Partitioning can reduce blast radius by <span className="text-white font-bold">12.4%</span> across 18 downstream entities.
-              </p>
-              <button 
-                 onClick={() => applyOptimization()}
-                 disabled={!!optimizationPreview}
-                 className={`w-full py-3 rounded-lg text-[13px] font-semibold transition-all flex items-center justify-center gap-2 ${optimizationPreview ? 'bg-[#10B981]/10 text-[#10B981]' : 'btn-primary'}`}
-              >
-                {optimizationPreview ? 'Optimization Applied' : 'Execute Optimization'}
-                {!optimizationPreview && <ArrowRight className="w-3.5 h-3.5" />}
-              </button>
+        {/* SUGGESTIONS */}
+        <div className="col-span-12 lg:col-span-4 premium-card p-8 flex flex-col bg-gradient-to-br from-[#12171D] to-[#0B0F14]">
+           <div className="flex items-center gap-3 mb-8">
+              <Zap className="w-4 h-4 text-[#F59E0B]" />
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-white">Smart Suggestions</h3>
            </div>
            
-           <div className="premium-card p-lg h-[140px] flex flex-col justify-center border-dashed border-[rgba(255,255,255,0.1)] bg-transparent">
-              <span className="text-metadata text-center opacity-40">SYSTEM_UPTIME 14d 12h 4m</span>
+           <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 scrollbar-hide">
+              {loading ? [1,2,3].map(i => (
+                <div key={i} className="h-32 w-full bg-white/3 animate-pulse rounded-xl border border-white/5" />
+              )) :
+               result?.suggestions?.length ? result.suggestions.map((item: any) => (
+                 <div key={item.id} className="p-5 rounded-xl border border-white/5 bg-black/40 group hover:border-[#00A3FF]/40 transition-all flex flex-col">
+                    <div className="flex justify-between items-center mb-3">
+                       <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${item.priority === 'HIGH' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
+                          {item.priority}
+                       </span>
+                       <span className="text-[11px] font-black text-[#10B981] tabular-nums">{item.estimated_impact}</span>
+                    </div>
+                    <h4 className="text-[14px] font-bold text-white mb-2">{item.title}</h4>
+                    <p className="text-[12px] text-[#8A949E] leading-relaxed mb-6 flex-1 opacity-80">{item.description}</p>
+                    <button 
+                      onClick={() => handleApplySuggestion(item.id)}
+                      disabled={state.optimizationLoading}
+                      className="w-full py-2.5 rounded-lg bg-[#00A3FF]/10 text-[#00A3FF] text-[10px] font-black uppercase tracking-widest hover:bg-[#00A3FF] hover:text-white transition-all disabled:opacity-20"
+                    >
+                      {state.optimizationLoading ? <RefreshCw className="w-3 h-3 animate-spin mx-auto" /> : "Apply Optimization"}
+                    </button>
+                 </div>
+               )) : (
+                 <div className="flex-1 flex flex-col items-center justify-center opacity-10 gap-4">
+                    <Info className="w-10 h-10" />
+                    <span className="text-[10px] font-black text-center tracking-[0.3em] uppercase">No Optimization<br/>Required</span>
+                 </div>
+               )}
            </div>
         </div>
 

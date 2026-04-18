@@ -1,6 +1,9 @@
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { HephaestusLayout } from '../components/HephaestusLayout';
+import { HephaestusProvider } from '../store/HephaestusContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'HEPHAESTUS | Core Engine',
@@ -14,11 +17,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased h-screen w-screen bg-[#06090E] text-[#e0e5ea] overflow-hidden flex flex-col font-sans selection:bg-[#00f0ff] selection:text-black">
-        <div className="scanline"></div>
-        <HephaestusLayout>
-          {children}
-        </HephaestusLayout>
+      <body className="antialiased h-screen w-screen bg-[#0B0F14] text-[#fdfdfe] selection:bg-[#00A3FF] selection:text-white">
+        <HephaestusProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<div className="bg-[#0B0F14] h-screen w-screen" />}>
+              <HephaestusLayout>
+                {children}
+              </HephaestusLayout>
+            </Suspense>
+          </ErrorBoundary>
+        </HephaestusProvider>
       </body>
     </html>
   );

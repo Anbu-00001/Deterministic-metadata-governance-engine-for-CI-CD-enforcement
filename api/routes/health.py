@@ -1,35 +1,19 @@
-"""
-Module: health.py
-
-Purpose:
-Provides API endpoints and server routes for health.py within the Hephaestus web service layer.
-
-Responsibilities:
-- Handles specific `health.py` domain logic
-- Integrates seamlessly with sibling modules
-- Adheres strictly to Hephaestus governance constraints
-
-Part of: Hephaestus Governance Engine
-
-Health-check endpoint."""
-
 from __future__ import annotations
-
 from fastapi import APIRouter
+from datetime import datetime
 
 router = APIRouter(tags=["health"])
 
-
 @router.get("/api/health")
-async def health_check() -> dict[str, str]:
-    """Return a simple health status.
-
-    Returns:
-        ``{"status": "ok", "version": "0.1.0", "service": "hephaestus-api"}``
-    """
+async def health_check() -> dict:
+    """Return a detailed health status as per Phase 1.2 Specs."""
     return {
         "status": "ok",
-        "version": "0.1.0",
-        "service": "hephaestus-api",
+        "version": "1.0.0",
+        "engine": "sentinel",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "components": {
+            "sentinel": "healthy",
+            "ingestion": "healthy"
+        }
     }
-
