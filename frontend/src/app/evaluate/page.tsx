@@ -2,11 +2,7 @@
 
 import React, { useState } from 'react';
 import { evaluateSentinel } from '@/lib/api';
-import VerdictBanner from '@/components/VerdictBanner';
-import ScoreBar from '@/components/ScoreBar';
-import BlastChart from '@/components/BlastChart';
-import SkillTable from '@/components/SkillTable';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, Crosshair } from 'lucide-react';
 
 export default function EvaluatePage() {
   const [jsonInput, setJsonInput] = useState('');
@@ -32,12 +28,9 @@ export default function EvaluatePage() {
     setError('');
     
     try {
-      // Assuming array of results is returned if it evaluates multiple entities,
-      // or a single result object.
       const res = await evaluateSentinel(parsed);
-      // Backend might wrap in "data" or return directly. Check shape here:
       if (Array.isArray(res)) {
-        setResult(res[0]); // Simple version: display first entity if array
+        setResult(res[0]);
       } else {
         setResult(res);
       }
@@ -49,119 +42,124 @@ export default function EvaluatePage() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setJsonInput(event.target?.result as string);
-    };
-    reader.readAsText(file);
-  };
+  const isPass = !result?.fgs?.is_blocked ?? true;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="border-b border-gray-800 pb-5">
-        <h1 className="text-3xl font-bold tracking-tight">Evaluate Sentinel</h1>
-        <p className="text-gray-400 mt-2">Run the governance engine against metadata payload changes.</p>
+    <div className="p-6 h-full flex flex-col relative">
+      <div className="mb-6 flex justify-between items-center z-10">
+        <div>
+          <h1 className="text-xl font-bold tracking-widest text-[#00E5FF] glow-text">EVALUATE SENTINEL</h1>
+          <p className="text-[10px] text-[#6B7A90] font-mono mt-1">FORGE GOVERNANCE PAYLOAD INJECTION</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="flex flex-1 gap-6">
         {/* Left Col: Input */}
-        <div className="space-y-4 flex flex-col">
-          <div className="flex justify-between items-end">
-            <label className="block text-sm font-medium text-gray-300">Input Payload (JSON)</label>
-            <div className="relative">
-              <input 
-                type="file" 
-                accept=".json" 
-                id="file-upload" 
-                className="hidden" 
-                onChange={handleFileUpload} 
-              />
-              <label 
-                htmlFor="file-upload" 
-                className="cursor-pointer text-xs bg-[#21262d] border border-gray-700 hover:bg-[#30363d] px-3 py-1.5 rounded transition-colors"
-              >
-                Upload JSON File
-              </label>
+        <div className="flex-1 flex flex-col gap-4">
+          <div className="panel-border rounded flex flex-col p-5 h-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90]">INPUT PAYLOAD [JSON]</h3>
+              <div className="flex gap-2">
+                <span className="px-2 py-0.5 rounded bg-[#1a2636] border border-[#26374a] text-[9px] text-[#00E5FF] font-bold">RAW FORMAT</span>
+              </div>
             </div>
+            
+            <textarea
+              className="w-full flex-1 bg-[#080d12] border border-[#16202e] rounded p-4 font-mono text-xs text-[#00E5FF] focus:outline-none focus:border-[#00E5FF] transition-colors resize-none mb-4"
+              placeholder='{ "metadata": { "example_table": { "id": { "description": "PK", "tags": ["PII"] } } } }'
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              spellCheck={false}
+            />
+            
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !jsonInput.trim()}
+              className="neon-btn w-full flex items-center justify-center gap-2 py-3 rounded text-[11px] font-bold tracking-widest disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {loading ? 'EVALUATING...' : 'EXECUTE SENTINEL'}
+            </button>
+            {error && <div className="mt-3 text-[#ff5b5b] text-[10px] font-mono border border-[#ff5b5b]/30 bg-[#ff5b5b]/10 p-2 rounded">{error}</div>}
           </div>
-          <textarea
-            className="w-full h-[400px] bg-[#0d1117] border border-gray-800 rounded-md p-4 font-mono text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
-            placeholder="Paste your JSON input payload here..."
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            spellCheck={false}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !jsonInput.trim()}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-            {loading ? 'Evaluating...' : 'Run Sentinel'}
-          </button>
-          {error && <div className="text-red-400 text-sm p-3 bg-red-950/20 border border-red-900/50 rounded">{error}</div>}
         </div>
 
         {/* Right Col: Output */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold tracking-tight border-b border-gray-800 pb-2">Results</h2>
-          
-          {!result && !loading && (
-            <div className="h-48 border border-dashed border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm">
-              Run evaluation to see results here.
-            </div>
-          )}
-
-          {loading && (
-            <div className="h-48 border border-gray-800 bg-[#161b22] rounded-lg flex flex-col items-center justify-center text-gray-400">
-              <Loader2 className="w-6 h-6 animate-spin mb-3 text-indigo-500" />
-              Computing compliance score...
-            </div>
-          )}
-
-          {result && !loading && (
-            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-              <VerdictBanner 
-                status={result.fgs?.is_blocked ? 'BLOCKED' : 'PASSED'} 
-                explanation={result.fgs?.explanation} 
-              />
-              
-              <div className="bg-[#161b22] border border-gray-800 rounded-lg p-5 space-y-5">
-                <ScoreBar 
-                  score={result.fgs?.score || 0} 
-                  label="Forge Governance Score (FGS)" 
-                />
-                
-                {result.fgs?.compliance_score !== undefined && (
-                  <ScoreBar 
-                    score={result.fgs?.compliance_score || 0} 
-                    label="Compliance Baseline" 
-                  />
-                )}
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="panel-border rounded flex flex-col p-5 h-full">
+            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4">EVALUATION TELEMETRY</h3>
+            
+            {!result && !loading && (
+              <div className="flex-1 border border-dashed border-[#1a2230] bg-[#0c1017] rounded flex items-center justify-center text-[#4A5568] text-[10px] font-mono">
+                AWAITING PAYLOAD INJECTION...
               </div>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <BlastChart radius={result.fgs?.blast_radius || 0} />
+            {loading && (
+              <div className="flex-1 border border-[#1a2230] bg-[#0A0F15] rounded flex flex-col items-center justify-center text-[#00E5FF]">
+                <Loader2 className="w-8 h-8 animate-spin mb-4 drop-shadow-[0_0_8px_rgba(0,229,255,0.7)]" />
+                <span className="text-[10px] font-mono tracking-widest animate-pulse">COMPUTING GOVERNANCE MATRIX...</span>
+              </div>
+            )}
+
+            {result && !loading && (
+              <div className="flex flex-col gap-6 h-full overflow-y-auto pr-2 custom-scrollbar">
                 
-                {result.change_magnitude && (
-                  <div className="w-full bg-[#161b22] border border-gray-800 rounded-lg p-4 flex flex-col justify-center">
-                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Change Magnitude</h4>
-                    <p className="text-3xl font-light text-white">{result.change_magnitude?.magnitude?.toFixed(4) || 0}</p>
-                    <p className="text-xs text-gray-500 mt-2">{result.change_magnitude?.summary}</p>
+                {/* Verdict */}
+                <div className={`p-4 border-l-4 rounded bg-gradient-to-r ${isPass ? 'from-[#00E5FF]/10 to-transparent border-[#00E5FF]' : 'from-[#ff5b5b]/10 to-transparent border-[#ff5b5b]'}`}>
+                   <h4 className={`text-xl font-black tracking-widest mb-1 ${isPass ? 'text-[#00E5FF]' : 'text-[#ff5b5b]'}`}>
+                     {isPass ? 'VERDICT: PASS' : 'VERDICT: BLOCKED'}
+                   </h4>
+                   <p className="text-[10px] text-[#e0e5ea] font-mono">{result.fgs?.explanation || 'Automatic bounds verified.'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* FGS Score Block */}
+                  <div className="border border-[#1a2230] bg-[#0c1017] p-4 rounded flex flex-col items-center justify-center">
+                    <span className="text-[9px] tracking-widest text-[#6B7A90] mb-2">FGS SCORE</span>
+                    <span className="text-3xl font-black text-white glow-text">{result.fgs?.score?.toFixed(2) || '0.00'}</span>
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-3">
-                <h3 className="font-medium text-gray-300">Skill Executions</h3>
-                <SkillTable skills={result.skills_findings || []} />
+                  {/* Blast Radius Block */}
+                  <div className="border border-[#1a2230] bg-[#0c1017] p-4 rounded flex flex-col items-center justify-center">
+                    <span className="text-[9px] tracking-widest text-[#6B7A90] mb-2">BLAST RADIUS</span>
+                    <span className="text-3xl font-black text-[#ffb48f] drop-shadow-[0_0_8px_rgba(255,180,143,0.5)]">{result.fgs?.blast_radius || 0}</span>
+                  </div>
+                </div>
+
+                 {/* Change Magnitude Block */}
+                 {result.change_magnitude && (
+                   <div className="border border-[#1a2230] bg-[#0c1017] p-4 rounded">
+                     <div className="flex justify-between items-center mb-2">
+                       <span className="text-[9px] tracking-widest text-[#6B7A90]">CHANGE MAGNITUDE</span>
+                       <span className="text-xl font-black text-[#00E5FF]">{result.change_magnitude?.magnitude?.toFixed(4) || '0.00'}</span>
+                     </div>
+                     <p className="text-[9px] text-[#e0e5ea] font-mono">{result.change_magnitude?.summary}</p>
+                   </div>
+                 )}
+
+                 {/* Skills Telemetry */}
+                 {result.skills_findings && result.skills_findings.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[9px] tracking-widest text-[#6B7A90] mb-1">SKILL PROCESSORS</span>
+                      {result.skills_findings.map((skill: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 border border-[#16202e] bg-[#080d12] rounded">
+                          <div className="flex items-center gap-2">
+                            <Crosshair className="w-3 h-3 text-[#00E5FF]" />
+                            <span className="text-[10px] text-white font-mono">{skill.skill}</span>
+                          </div>
+                          {skill.result?.error ? (
+                             <span className="text-[9px] text-[#ff5b5b] font-bold tracking-widest">FAIL</span>
+                          ) : (
+                             <span className="text-[9px] text-[#39ff14] font-bold tracking-widest">OK</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navigation from '@/components/Navigation';
+import { HephaestusLayout } from '../components/HephaestusLayout';
 
 export const metadata: Metadata = {
-  title: 'Hephaestus Dashboard',
+  title: 'HEPHAESTUS | Core Engine',
   description: 'Deterministic Metadata Governance Engine',
 };
 
@@ -13,12 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="antialiased min-h-screen flex flex-col bg-[#0d1117] text-[#e6edf3]">
-        <Navigation />
-        <main className="flex-1 max-w-7xl w-full mx-auto p-6 lg:p-8">
+    <html lang="en">
+      <body className="antialiased h-screen w-screen bg-[#06090E] text-[#e0e5ea] overflow-hidden flex flex-col font-sans selection:bg-[#00f0ff] selection:text-black">
+        <div className="scanline"></div>
+        <HephaestusLayout>
           {children}
-        </main>
+        </HephaestusLayout>
       </body>
     </html>
   );
