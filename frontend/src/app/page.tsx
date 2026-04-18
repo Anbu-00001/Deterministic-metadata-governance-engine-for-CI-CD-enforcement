@@ -3,12 +3,11 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CheckCircle2, AlertTriangle, Expand, Activity, Loader2, Crosshair, Zap 
+  CheckCircle2, AlertCircle, Expand, Activity, Loader2, Zap, ArrowRight, ShieldCheck, Info
 } from 'lucide-react';
 
 import { useGovernanceStore } from '../store/useGovernanceStore';
 import { useMousePosition } from '../hooks/useMouse';
-import { InteractiveCard } from '../components/InteractiveCard';
 import { FgsGauge3D } from '../components/FgsGauge3D';
 import { BlastRadius3D } from '../components/BlastRadius3D';
 import { ChangeMagnitudeBars } from '../components/ChangeMagnitudeBars';
@@ -18,10 +17,7 @@ export default function Dashboard() {
   const mouse = useMousePosition();
 
   useEffect(() => {
-    // Initial evaluation on mount if no results
-    if (!result) {
-      runEvaluation();
-    }
+    if (!result) runEvaluation();
   }, []);
 
   const score = result?.fgs?.score || 0;
@@ -29,279 +25,208 @@ export default function Dashboard() {
   const displayScore = optimizationPreview ? optimizationPreview.after : score;
 
   return (
-    <div className="p-6 h-full grid grid-cols-12 grid-rows-6 gap-6 relative">
+    <div className="flex flex-col gap-12 max-w-[1400px] mx-auto pb-16">
       
-      {/* Background depth decor */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-10"
-        style={{
-          transform: `translate(${mouse.x * 30}px, ${mouse.y * 30}px) translateZ(-100px)`,
-          backgroundImage: `radial-gradient(circle at 50% 50%, #00E5FF 0%, transparent 80%)`
-        }}
-      />
+      {/* HEADER SECTION */}
+      <div className="flex justify-between items-end">
+        <div className="flex flex-col gap-2">
+           <div className="flex items-center gap-3 text-metadata uppercase tracking-widest opacity-60">
+              <Activity className="w-3.5 h-3.5" />
+              <span>Pipeline Intelligence</span>
+           </div>
+           <h1>Infrastructure Overview</h1>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary">Export Report</button>
+          <button className="btn-primary" onClick={() => runEvaluation()}>Run Audit</button>
+        </div>
+      </div>
 
-      {/* Loading Overlay */}
       <AnimatePresence>
         {loading && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-[#0B1017]/80 backdrop-blur-xl z-50 flex flex-col items-center justify-center"
+            className="fixed inset-0 bg-[#0B0F14]/40 backdrop-blur-[2px] z-[100] flex items-center justify-center"
           >
-             <div className="flex flex-col items-center gap-6">
-                <div className="relative w-20 h-20">
-                   <Loader2 className="w-full h-full text-[#00E5FF] animate-spin opacity-20" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                     <div className="w-4 h-4 bg-[#00E5FF] rounded-full animate-ping" />
-                   </div>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                   <span className="text-[11px] font-black tracking-[0.5em] text-[#00E5FF] animate-pulse uppercase">Analyzing Pipeline Risk</span>
-                   <span className="text-[9px] font-mono text-[#6B7A90] uppercase tracking-widest">Cross-referencing global metadata schemas</span>
-                </div>
+             <div className="premium-card p-lg flex items-center gap-4 bg-[#12171D] border border-[rgba(255,255,255,0.1)]">
+                <Loader2 className="w-5 h-5 text-[#00A3FF] animate-spin" />
+                <span className="text-body font-medium">Running Governance Sentinel...</span>
              </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* COL 1: Context & Lineage */}
-      <div className="col-span-3 row-span-6 flex flex-col gap-6">
-        <InteractiveCard className="flex flex-col flex-shrink-0">
-          <div className="panel-border rounded flex flex-col p-5 bg-[#0d1219]/60 backdrop-blur-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] uppercase underline decoration-[#00E5FF]/30 underline-offset-4 font-black">Input Context</h3>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#39ff14] shadow-[0_0_8px_#39ff14]" />
-                <span className="text-[9px] text-[#00E5FF] font-black italic">LIVE</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-               {result ? (
-                 <motion.div 
-                   initial={{ x: -10, opacity: 0 }}
-                   animate={{ x: 0, opacity: 1 }}
-                   className={`p-4 border rounded-xl transition-all group ${result.fgs.is_blocked ? 'border-[#ff5b5b]/40 bg-[#ff5b5b]/5' : 'border-[#1a2230] bg-black/40 hover:border-[#00E5FF]/40'}`}
-                 >
-                   <div className="flex justify-between items-center mb-3">
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-[#00E5FF] truncate max-w-[130px] group-hover:glow-text transition-all tracking-tight uppercase">
-                          {result.entity_fqn}
-                        </span>
-                        <span className="text-[8px] text-[#6B7A90] font-mono mt-0.5">SHA: de31a04</span>
-                     </div>
-                     <span className={`px-2 py-0.5 rounded text-[8px] font-bold border ${result.fgs.is_blocked ? 'text-[#ff5b5b] border-[#ff5b5b]/30 bg-[#ff5b5b]/5' : 'text-[#39ff14] border-[#39ff14]/30 bg-[#39ff14]/5'}`}>
-                       {result.fgs.is_blocked ? 'CRITICAL' : 'STABLE'}
-                     </span>
-                   </div>
-                   <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden mb-3">
-                     <motion.div 
-                       initial={{ width: 0 }}
-                       animate={{ width: `${result.fgs.score}%` }}
-                       className={`h-full ${result.fgs.is_blocked ? 'bg-[#ff5b5b]' : 'bg-[#00E5FF]'}`}
-                      />
-                   </div>
-                   <div className="flex justify-between text-[9px] font-black tracking-widest text-[#6B7A90] uppercase opacity-60 font-mono">
-                     <span>FGS_SCORE</span>
-                     <span className={result.fgs.is_blocked ? 'text-[#ff5b5b]' : 'text-[#00E5FF]'}>{result.fgs.score.toFixed(1)}</span>
-                   </div>
-                 </motion.div>
-               ) : (
-                 <div className="text-[10px] text-[#6B7A90] text-center font-mono py-10 opacity-30 italic">Awaiting Telemetry...</div>
-               )}
-            </div>
-          </div>
-        </InteractiveCard>
-
-        <InteractiveCard className="flex-1">
-          <div className="panel-border rounded flex flex-col p-5 h-full relative overflow-hidden group bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
-            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4 uppercase">Lineage Topology</h3>
-            <div className="flex-1 rounded-xl border border-[#16202e] bg-black/40 dot-pattern relative flex items-center justify-center overflow-hidden">
-              <BlastRadius3D data={result?.fgs} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
-              <div className="absolute bottom-3 right-3 p-2 rounded-lg bg-[#111721] border border-[#1d2737] cursor-pointer hover:scale-110 transition-transform shadow-2xl">
-                <Expand className="w-4 h-4 text-[#6B7A90] group-hover:text-[#00E5FF]" />
-              </div>
-            </div>
-          </div>
-        </InteractiveCard>
-      </div>
-
-      {/* COL 2: FGS Score & Change Magnitude */}
-      <div className="col-span-4 row-span-6 flex flex-col gap-6">
-        <InteractiveCard intensity={10} className="flex-[2]">
-          <div className="panel-border rounded flex flex-col p-5 h-full bg-[#0d1219]/60 backdrop-blur-lg relative border-[#1a2230] overflow-hidden">
-            <h3 className="text-[10px] font-black tracking-widest text-[#6B7A90] mb-6 uppercase">Governance Evaluation Score</h3>
-            <div className="flex flex-col items-center justify-center flex-1">
-              <FgsGauge3D score={displayScore} />
-              
-              <AnimatePresence>
-                {optimizationPreview && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-16 flex flex-col items-center"
-                  >
-                     <div className="px-3 py-1 bg-[#39ff14]/10 border border-[#39ff14]/30 rounded-full text-[10px] text-[#39ff14] font-black tracking-widest flex items-center gap-2">
-                        <Activity className="w-3 h-3" />
-                        PREDICTED: +12.4% BOOST
-                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex w-full justify-around mt-6 pt-6 border-t border-white/5 font-mono">
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] text-[#6B7A90] font-black tracking-widest mb-1 opacity-50">VELOCITY_OFFSET</span>
-                  <span className="text-[#00E5FF] text-sm font-black">+12.4%</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] text-[#6B7A90] font-black tracking-widest mb-1 opacity-50">INTEGRITY_INDEX</span>
-                  <span className="text-[#39ff14] text-sm font-black">99.98%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </InteractiveCard>
-
-        <InteractiveCard className="flex-[1]">
-          <div className="panel-border rounded flex flex-col p-5 h-full bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] uppercase italic">Drift Magnitude Historical</h3>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shadow-[0_0_5px_#00E5FF]" /><span className="text-[8px] text-[#6B7A90] font-bold">DELTA</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#303e50]" /><span className="text-[8px] text-[#6B7A90] font-bold">BASE</span></div>
-              </div>
-            </div>
-            <div className="mt-auto h-28">
-                <ChangeMagnitudeBars data={[result?.change_magnitude?.magnitude || 0.4, 0.7, 0.5, 0.9]} />
-            </div>
-          </div>
-        </InteractiveCard>
-      </div>
-
-      {/* COL 3: Blast Radius Scatter */}
-      <div className="col-span-2 row-span-6 flex flex-col gap-6">
-        <InteractiveCard className="h-full">
-          <div className="flex flex-col h-full bg-[#0D1219]/80 border border-[#1a2230] rounded-xl p-6 relative overflow-hidden backdrop-blur-2xl">
-            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8 uppercase">Radial Blast Analysis</h3>
-            
-            <div className="flex-1 bg-black/60 rounded-xl border border-white/5 shadow-2xl relative group ring-1 ring-[#1f3a47] overflow-hidden dot-pattern">
-              <BlastRadius3D />
-              
-              <div className="absolute top-2 left-2 bg-[#0d1219]/90 px-2 py-1 rounded border border-white/5 backdrop-blur-md pointer-events-none">
-                <span className="text-[8px] font-mono text-[#00E5FF] tracking-tighter">SIMULATING_LINEAGE_IMPACT...</span>
-              </div>
-            </div>
-
-            <motion.div 
-               key={result?.entity_fqn}
-               initial={{ x: 20, opacity: 0 }}
-               animate={{ x: 0, opacity: 1 }}
-               className="pt-6 mt-6 border-t border-white/5"
-            >
-               <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-black text-white tracking-widest uppercase mb-1 font-mono">Impact Identifier</span>
-                  <div className="text-[#00E5FF] text-[11px] font-mono font-bold tracking-widest">BLR-429</div>
-                  <div className="flex justify-between items-end mt-2">
-                    <span className="text-[9px] text-[#6B7A90] font-bold uppercase tracking-widest">Blast Radius</span>
-                    <span className="text-2xl font-black text-white glow-text italic">{result?.fgs?.blast_radius || 18}</span>
-                  </div>
-               </div>
-            </motion.div>
-          </div>
-        </InteractiveCard>
-      </div>
-
-      {/* COL 4: Decision Engine, Risk Breakdown, Suggestion */}
-      <div className="col-span-3 row-span-6 flex flex-col gap-6">
+      {/* TOP ROW: Metric Cards */}
+      <div className="grid grid-cols-12 gap-lg">
         
-        <InteractiveCard className="h-[320px]">
-          <div className="panel-border rounded flex flex-col p-6 h-full bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
-            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8 uppercase">Automated Verdict Engine</h3>
-            <div className="flex flex-col items-center justify-center flex-1">
-              <span className="text-[9px] font-black tracking-widest text-[#6B7A90] mb-4 uppercase opacity-50">Policy Decision</span>
-              
-              <motion.div 
-                initial={{ rotateX: 45, opacity: 0 }}
-                animate={{ rotateX: 0, opacity: 1 }}
-                className={`w-[170px] h-[110px] border-2 rounded-xl flex flex-col items-center justify-center mb-10 shadow-3xl transition-all duration-700 relative group overflow-hidden ${
-                  isPass 
-                    ? 'border-[#00E5FF]/60 bg-[#00E5FF]/5 text-[#00E5FF] shadow-[#00f0ff]/10 animate-pulse' 
-                    : 'border-[#ff5b5b]/60 bg-[#ff5b5b]/5 text-[#ff5b5b] shadow-[#ff5b5b]/10'
-                }`}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-1000 ${isPass ? 'from-[#00E5FF]/20 to-transparent' : 'from-[#ff5b5b]/20 to-transparent'}`} />
-                <span className="text-3xl font-black tracking-[0.3em] glow-text italic z-10 transition-all group-hover:tracking-[0.4em]">
-                  {isPass ? 'PASS' : 'BLOCK'}
-                </span>
-              </motion.div>
+        {/* CENTERPIECE: Governance Score */}
+        <div className="col-span-12 lg:col-span-5 premium-card p-xl flex flex-col items-center justify-center relative overflow-hidden h-[480px]">
+           <div className="absolute top-6 left-6 flex items-center gap-2">
+              <h3 className="text-xs">Governance Health</h3>
+              <Info className="w-3.5 h-3.5 text-[#64707D] cursor-help" />
+           </div>
+           
+           <div className="w-full flex-1 flex items-center justify-center">
+             <FgsGauge3D score={displayScore} />
+           </div>
 
-              <div className="bg-black/40 p-4 rounded-xl border border-white/5 w-full">
-                 <p className="text-[11px] text-center text-[#e0e5ea] font-medium leading-snug">
-                   {result?.fgs?.explanation || 'Sentinel awaiting PR telemetry ingestion...'}
-                 </p>
+           <div className="w-full grid grid-cols-2 border-t border-[rgba(255,255,255,0.06)] pt-xl mt-4">
+              <div className="flex flex-col items-center border-r border-[rgba(255,255,255,0.06)]">
+                 <span className="text-metadata mb-1">DATA RELIABILITY</span>
+                 <span className="text-[18px] font-semibold text-[#10B981]">99.98%</span>
               </div>
-              <div className="flex items-center gap-2 mt-4 text-[10px] font-mono font-bold tracking-widest uppercase">
-                 <span className="text-[#6B7A90] italic">Confidence:</span>
-                 <span className="text-[#39ff14] glow-text">92.4%</span>
+              <div className="flex flex-col items-center">
+                 <span className="text-metadata mb-1">CHANGE VELOCITY</span>
+                 <span className="text-[18px] font-semibold text-[#00A3FF]">+12.4%</span>
               </div>
-            </div>
-          </div>
-        </InteractiveCard>
-
-        <div className="panel-border rounded flex flex-col p-6 flex-[1.5] bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
-          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-6 uppercase italic">Risk Vector Categorization</h3>
-          <div className="flex flex-col gap-6 mt-2">
-            {[
-              { name: 'SECURITY_INTEGRITY', value: 20, level: 'LOW', color: '#00E5FF' },
-              { name: 'RESOURCE_COLLISION', value: 60, level: 'MED', color: '#fbc02d' },
-              { name: 'ORCHESTRATION_LAG', value: 15, level: 'LOW', color: '#00E5FF' },
-            ].map(risk => (
-              <div key={risk.name} className="flex flex-col gap-2.5">
-                <div className="flex justify-between items-center text-[10px] font-black tracking-tighter">
-                  <span className="text-[#e0e5ea] uppercase">{risk.name}</span>
-                  <span style={{ color: risk.color }} className="text-[9px] font-black italic">{risk.level}</span>
-                </div>
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden p-[1px]">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${risk.value}%` }}
-                    transition={{ duration: 1.5, ease: "circOut" }}
-                    className="h-full rounded-full shadow-lg"
-                    style={{ backgroundColor: risk.color, boxShadow: `0 0 10px ${risk.color}66` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+           </div>
         </div>
 
-        <motion.div 
-          whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
-          className="panel-border rounded flex flex-col p-6 flex-[1.2] relative overflow-hidden bg-gradient-to-br from-[#0c141d] to-[#010203] border-[#1a2230] group"
-        >
-          <div className="absolute top-0 left-0 w-2 h-full bg-[#00E5FF] shadow-[0_0_20px_#00E5FF]" />
-          <div className="flex items-center gap-3 mb-4">
-            <Zap className="w-4 h-4 text-[#00E5FF] fill-[#00e5ff] animate-pulse" />
-            <h3 className="text-[10px] font-black tracking-widest text-[#e0e5ea] uppercase">Dynamic Recommendation</h3>
-          </div>
-          <p className="text-[11px] text-[#a0aab8] font-medium leading-relaxed mb-6 flex-1 italic group-hover:text-white transition-colors">
-            Heuristic detection triggered: Implement <span className="text-[#00E5FF] font-black underline underline-offset-4 decoration-[#00E5FF]/40 cursor-pointer">shard_key_01</span> partitioning to compress Blast Radius by ~<span className="text-white font-bold font-mono">12.4%</span>.
-          </p>
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => applyOptimization()}
-            disabled={!!optimizationPreview}
-            className="w-full py-3.5 rounded-xl text-[10px] font-black tracking-widest bg-[#00E5FF] text-black shadow-[0_0_30px_#00f0ff44] hover:shadow-[0_0_40px_#00f0ff66] transition-all uppercase disabled:bg-[#1a2230] disabled:text-[#6B7A90]"
-          >
-            {optimizationPreview ? 'OPTIMIZATION APPLIED' : 'EXECUTE OPTIMIZATION'}
-          </motion.button>
-        </motion.div>
+        {/* TOP RIGHT COLUMN */}
+        <div className="col-span-12 lg:col-span-7 flex flex-col gap-lg">
+           
+           {/* Decision Panel */}
+           <div className="premium-card p-lg flex items-center justify-between h-[160px]">
+              <div className="flex flex-col gap-2">
+                 <h3 className="text-xs">Verdict Output</h3>
+                 <div className="flex items-baseline gap-4 mt-2">
+                    <span className={`text-[42px] font-bold tracking-tighter ${isPass ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                      {isPass ? 'PASS' : 'BLOCK'}
+                    </span>
+                    <span className="text-body font-medium opacity-60 mb-2">Confidence: 92.4%</span>
+                 </div>
+              </div>
+              <div className="flex flex-col gap-3 max-w-[280px]">
+                 <p className="text-body text-right">
+                   {result?.fgs?.explanation || 'Sentinel is monitoring current metadata estate deployments.'}
+                 </p>
+                 {isPass && (
+                   <div className="flex items-center gap-2 text-[#10B981] justify-end">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="text-[11px] font-bold tracking-wider">SECURE RELEASE VERIFIED</span>
+                   </div>
+                 )}
+              </div>
+           </div>
+
+           {/* Risk & Change Magnitude Row */}
+           <div className="grid grid-cols-2 gap-lg flex-1">
+              <div className="premium-card p-lg flex flex-col">
+                 <h3 className="text-xs mb-8">Risk Breakdown</h3>
+                 <div className="flex flex-col gap-6">
+                   {[
+                     { name: 'Security Integrity', val: 20, color: '#00A3FF' },
+                     { name: 'Resource Allocation', val: 60, color: '#F59E0B' },
+                     { name: 'System Performance', val: 15, color: '#00A3FF' }
+                   ].map(risk => (
+                     <div key={risk.name} className="flex flex-col gap-2">
+                        <div className="flex justify-between text-[11px] font-semibold">
+                           <span className="text-[#8A949E] uppercase tracking-wider">{risk.name}</span>
+                           <span className="text-[#64707D]">{risk.val}%</span>
+                        </div>
+                        <div className="w-full h-1 bg-[rgba(255,255,255,0.03)] rounded-full overflow-hidden">
+                           <motion.div 
+                              initial={{ width: 0 }}
+                               animate={{ width: `${risk.val}%` }}
+                               className="h-full rounded-full"
+                               style={{ backgroundColor: risk.color }}
+                           />
+                        </div>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+
+              <div className="premium-card p-lg flex flex-col">
+                 <h3 className="text-xs mb-8">Drift magnitude</h3>
+                 <div className="flex-1 flex items-end h-[100px]">
+                    <ChangeMagnitudeBars data={[result?.change_magnitude?.magnitude || 0.4, 0.7, 0.5, 0.9, 0.6]} />
+                 </div>
+                 <p className="text-metadata mt-6 opacity-60">Comparative historical drift analysis</p>
+              </div>
+           </div>
+
+        </div>
+      </div>
+
+      {/* SECOND ROW: Analysis & Lineage */}
+      <div className="grid grid-cols-12 gap-lg">
+        
+        {/* INPUT CONTEXT */}
+        <div className="col-span-12 lg:col-span-4 premium-card p-lg flex flex-col h-[500px]">
+           <h3 className="text-xs mb-8">Discovery Context</h3>
+           <div className="flex flex-col gap-1 overflow-y-auto pr-2 scrollbar-hide">
+              {result ? (
+                <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[#0B0F14] hover:bg-[#12171D] transition-colors cursor-pointer group">
+                   <div className="flex justify-between items-center mb-4">
+                      <span className="font-mono text-xs font-bold text-white group-hover:text-[#00A3FF] transition-colors uppercase">{result.entity_fqn}</span>
+                      <div className={`status-indicator ${result.fgs.is_blocked ? 'bg-[#EF4444]' : 'bg-[#10B981]'}`} />
+                   </div>
+                   <div className="flex flex-col gap-4">
+                      <div className="flex justify-between items-center text-metadata">
+                         <span>Compliance Score</span>
+                         <span className="text-white">{(result.fgs.compliance_score * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full h-[1px] bg-[rgba(255,255,255,0.04)]" />
+                      <div className="flex justify-between items-center text-metadata">
+                         <span>Blast Sensitivity</span>
+                         <span className="text-[#F59E0B] font-bold">{result.fgs.blast_radius}</span>
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-[#64707D] gap-4">
+                   <Zap className="w-6 h-6 opacity-20" />
+                   <span className="text-metadata italic">Awaiting source telemetry...</span>
+                </div>
+              )}
+           </div>
+        </div>
+
+        {/* LINEAGE TOPOLOGY */}
+        <div className="col-span-12 lg:col-span-5 premium-card overflow-hidden h-[500px] flex flex-col relative">
+           <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
+              <h3 className="text-xs">Lineage Topology</h3>
+              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+           </div>
+           <div className="flex-1 canvas-bg relative group">
+              <BlastRadius3D data={result?.fgs} />
+              <div className="absolute bottom-6 right-6 z-10 p-2 rounded-lg bg-[#12171D] border border-[rgba(255,255,255,0.06)] cursor-pointer hover:border-white transition-all text-[#64707D] hover:text-white">
+                 <Expand className="w-4 h-4" />
+              </div>
+           </div>
+        </div>
+
+        {/* RECOMMENDATIONS */}
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-lg">
+           <div className="premium-card p-lg flex-1 bg-gradient-to-br from-[#12171D] to-[#0B0F14] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A3FF]/5 blur-3xl pointer-events-none" />
+              <div className="flex items-center gap-3 mb-8">
+                <Zap className="w-4 h-4 text-[#F59E0B]" />
+                <h3 className="text-xs">Smart Suggestion</h3>
+              </div>
+              <p className="text-body leading-relaxed mb-8 font-medium">
+                Detected high impact potential in <span className="text-white border-b border-[#00A3FF]/40 pb-0.5">shard_key_01</span>. Partitioning can reduce blast radius by <span className="text-white font-bold">12.4%</span> across 18 downstream entities.
+              </p>
+              <button 
+                 onClick={() => applyOptimization()}
+                 disabled={!!optimizationPreview}
+                 className={`w-full py-3 rounded-lg text-[13px] font-semibold transition-all flex items-center justify-center gap-2 ${optimizationPreview ? 'bg-[#10B981]/10 text-[#10B981]' : 'btn-primary'}`}
+              >
+                {optimizationPreview ? 'Optimization Applied' : 'Execute Optimization'}
+                {!optimizationPreview && <ArrowRight className="w-3.5 h-3.5" />}
+              </button>
+           </div>
+           
+           <div className="premium-card p-lg h-[140px] flex flex-col justify-center border-dashed border-[rgba(255,255,255,0.1)] bg-transparent">
+              <span className="text-metadata text-center opacity-40">SYSTEM_UPTIME 14d 12h 4m</span>
+           </div>
+        </div>
 
       </div>
+
     </div>
   );
 }

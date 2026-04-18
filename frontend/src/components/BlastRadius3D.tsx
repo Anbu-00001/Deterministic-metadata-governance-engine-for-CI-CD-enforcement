@@ -22,14 +22,14 @@ function GraphScene({ nodes, edges, onSelectNode }: { nodes: NodeData[], edges: 
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.001;
+      groupRef.current.rotation.y += 0.0008; // Subtle pivot rotation
     }
   });
 
   return (
     <group ref={groupRef}>
       {nodes.map((node) => (
-        <Float key={node.id} speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+        <Float key={node.id} speed={1.2} rotationIntensity={0.1} floatIntensity={0.3}>
           <mesh 
             position={node.pos} 
             onClick={(e) => {
@@ -39,22 +39,20 @@ function GraphScene({ nodes, edges, onSelectNode }: { nodes: NodeData[], edges: 
             onPointerOver={() => { document.body.style.cursor = 'pointer' }}
             onPointerOut={() => { document.body.style.cursor = 'auto' }}
           >
-            <sphereGeometry args={[0.1 + node.impact * 0.08, 24, 24]} />
+            <sphereGeometry args={[0.08 + node.impact * 0.05, 32, 32]} />
             <meshStandardMaterial 
-              color={node.impact > 0.5 ? "#ff5b5b" : "#00f0ff"} 
-              emissive={node.impact > 0.5 ? "#ff5b5b" : "#00f0ff"}
-              emissiveIntensity={1.5}
-              roughness={0}
-              metalness={1}
+              color={node.impact > 0.5 ? "#F59E0B" : "#00A3FF"} 
+              roughness={0.05}
+              metalness={0.9}
             />
           </mesh>
           <Text
-            position={[node.pos[0], node.pos[1] + 0.3, node.pos[2]]}
-            fontSize={0.08}
-            color="white"
+            position={[node.pos[0], node.pos[1] + 0.25, node.pos[2]]}
+            fontSize={0.07}
+            color="#8A949E"
             anchorX="center"
             anchorY="middle"
-            font="/fonts/SpaceGrotesk-Bold.ttf" // Optional: placeholder for custom font
+            font="/fonts/Inter-Medium.ttf" // Placeholder for project level font
           >
             {node.name}
           </Text>
@@ -65,28 +63,29 @@ function GraphScene({ nodes, edges, onSelectNode }: { nodes: NodeData[], edges: 
         <Line
           key={i}
           points={[edge.start, edge.end]}
-          color="#00f0ff"
-          lineWidth={1}
+          color="#8A949E"
+          lineWidth={0.5}
           transparent
-          opacity={0.15}
+          opacity={0.1}
         />
       ))}
 
-      {/* Background Cosmic Dust */}
-      <Points limit={2000}>
+      {/* Subtle Starfield - Reduced Noise */}
+      <Points limit={1000}>
         <PointMaterial 
           transparent 
-          vertexColors 
-          size={0.03} 
+          color="#64707D"
+          size={0.02} 
           sizeAttenuation={true} 
           depthWrite={false} 
+          opacity={0.3}
         />
         {useMemo(() => {
-          const positions = new Float32Array(2000 * 3);
-          for (let i = 0; i < 2000; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 15;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 15;
+          const positions = new Float32Array(1000 * 3);
+          for (let i = 0; i < 1000; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 12;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 12;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 12;
           }
           return positions;
         }, [])}
@@ -97,14 +96,12 @@ function GraphScene({ nodes, edges, onSelectNode }: { nodes: NodeData[], edges: 
 
 export const BlastRadius3D: React.FC<{ data?: any }> = ({ data }) => {
   const nodes = useMemo(() => {
-    // Dynamically scale or use backend provided nodes
     const mockNodes: NodeData[] = [
       { id: '1', name: 'CORE_USERS', pos: [0, 0, 0], impact: 0.9 },
-      { id: '2', name: 'BILLING_DATA', pos: [1.2, 1, -1.5], impact: 0.6 },
-      { id: '3', name: 'INV_CATALOG', pos: [-1.5, 0.8, 1.2], impact: 0.3 },
-      { id: '4', name: 'AUTH_TRAIL', pos: [0.8, -1.2, 0.8], impact: 0.7 },
-      { id: '5', name: 'AUDIT_LOG_V2', pos: [-1.8, -1, -0.8], impact: 0.1 },
-      { id: '6', name: 'GEO_SHARDS', pos: [2, 0, 1], impact: 0.4 },
+      { id: '2', name: 'BILLING_DATA', pos: [1.2, 0.8, -1.2], impact: 0.6 },
+      { id: '3', name: 'INV_CATALOG', pos: [-1.2, 0.6, 1], impact: 0.3 },
+      { id: '4', name: 'AUTH_TRAIL', pos: [0.6, -1, 0.6], impact: 0.7 },
+      { id: '5', name: 'AUDIT_LOG_V2', pos: [-1.5, -0.8, -0.6], impact: 0.1 },
     ];
     return mockNodes;
   }, [data]);
@@ -120,15 +117,15 @@ export const BlastRadius3D: React.FC<{ data?: any }> = ({ data }) => {
   }, [nodes]);
 
   return (
-    <div className="w-full h-full min-h-[350px] relative">
-      <Canvas gl={{ antialias: true }} dpr={[1, 2]}>
+    <div className="w-full h-full min-h-[400px] relative">
+      <Canvas gl={{ antialias: true, alpha: true }} dpr={[1, 2]}>
         <PerspectiveCamera makeDefault position={[0, 0, 5]} />
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={2} />
+        <ambientLight intensity={0.4} />
+        <pointLight position={[5, 5, 5]} intensity={1} />
         <GraphScene 
            nodes={nodes} 
            edges={edges} 
-           onSelectNode={(n) => alert(`ENT_METADATA: ${n.name}\nIMPACT_RADIUS: ${n.impact * 100}%`)} 
+           onSelectNode={(n) => {}} 
         />
       </Canvas>
     </div>

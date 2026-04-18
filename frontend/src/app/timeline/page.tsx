@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useGovernanceStore } from '../store/useGovernanceStore';
-import { Clock, History, AlertCircle, Crosshair, ArrowRight, Loader2 } from 'lucide-react';
+import { Clock, AlertCircle, ArrowRight, Loader2, Database, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function TimelinePage() {
@@ -13,25 +13,31 @@ export default function TimelinePage() {
   }, []);
 
   return (
-    <div className="p-8 h-full flex flex-col relative overflow-hidden">
-      {/* Background depth decor */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#00f0ff]/5 blur-[120px] pointer-events-none" />
-
-      <div className="mb-10 flex justify-between items-center z-10">
-        <div>
-          <h1 className="text-3xl font-black tracking-[0.4em] text-[#00E5FF] glow-text uppercase italic">System Logs</h1>
-          <p className="text-[10px] text-[#6B7A90] font-mono mt-1 font-bold tracking-widest uppercase opacity-60">Governance Evaluation Registry Matrix</p>
+    <div className="flex flex-col gap-12 max-w-[1200px] mx-auto pb-16">
+      
+      {/* HEADER */}
+      <div className="flex justify-between items-end">
+        <div className="flex flex-col gap-2">
+           <div className="flex items-center gap-3 text-metadata uppercase tracking-widest opacity-60">
+              <History className="w-3.5 h-3.5" />
+              <span>Audit logs</span>
+           </div>
+           <h1>Governance History</h1>
         </div>
-        <div className="flex items-center gap-4 text-[10px] text-[#6B7A90] font-mono font-black italic">
-           <span>ENTRIES: <span className="text-[#00E5FF]">{history.length}</span></span>
+        <div className="flex gap-3">
+           <button className="btn-secondary flex items-center gap-2">
+             <Database className="w-3.5 h-3.5" />
+             Backup Registry
+           </button>
         </div>
       </div>
 
-      <div className="flex-1 panel-border rounded-2xl flex flex-col p-8 h-full bg-[#0d1219]/60 backdrop-blur-2xl relative overflow-hidden border-[#1a2230]">
-        <h3 className="text-[11px] font-black tracking-[0.3em] text-[#6B7A90] mb-10 uppercase flex items-center gap-4 italic opacity-80">
-           <Clock className="w-4 h-4 text-[#00E5FF] animate-spin-slow" />
-           CHRONOLOGICAL SNAPSHOTS
-        </h3>
+      {/* TABLE SECTION */}
+      <div className="premium-card p-0 overflow-hidden bg-[#12171D]">
+        <div className="p-lg border-b border-[rgba(255,255,255,0.06)] bg-[#0B0F14]/40 flex justify-between items-center">
+           <h3 className="text-xs">Chrono Snapshot Matrix</h3>
+           <span className="text-metadata opacity-40 uppercase">Total Artifacts: {history.length}</span>
+        </div>
 
         <AnimatePresence mode="wait">
           {loading ? (
@@ -40,78 +46,78 @@ export default function TimelinePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col items-center justify-center text-[#00E5FF]"
+              className="py-24 flex flex-col items-center justify-center gap-4"
             >
-              <Loader2 className="w-16 h-16 animate-spin mb-8 drop-shadow-[0_0_15px_rgba(0,229,255,0.7)]" />
-              <span className="text-[11px] font-black tracking-[0.6em] animate-pulse italic uppercase">Accessing_Chronos_Registry...</span>
+              <Loader2 className="w-6 h-6 animate-spin text-[#00A3FF]" />
+              <span className="text-body opacity-60">Loading historical registry...</span>
             </motion.div>
           ) : error ? (
             <motion.div 
               key="error"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-8 bg-[#ff5b5b]/5 border border-[#ff5b5b]/20 rounded-2xl flex items-start gap-6 text-[#ff5b5b] shadow-2xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="p-12 flex flex-col items-center justify-center gap-4 text-[#EF4444]"
             >
-              <AlertCircle className="w-8 h-8" />
-              <div>
-                <p className="text-sm font-black tracking-widest uppercase mb-2">Registry Corruption Detected</p>
-                <p className="text-[11px] font-mono leading-relaxed opacity-80">{error}</p>
+              <AlertCircle className="w-8 h-8 opacity-40" />
+              <div className="text-center">
+                <p className="font-bold mb-1 uppercase tracking-widest text-[11px]">Sync failure</p>
+                <p className="text-body opacity-80">{error}</p>
               </div>
             </motion.div>
           ) : history.length === 0 ? (
-            <motion.div 
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex-1 border border-dashed border-[#1a2230] bg-black/30 rounded-2xl flex flex-col items-center justify-center text-[#4A5568] text-[11px] font-mono font-black"
-            >
-              <History className="w-14 h-14 mb-6 opacity-20" />
-              <span className="tracking-[0.4em] uppercase">No Historical Artifacts Found</span>
-            </motion.div>
+            <div className="py-24 flex flex-col items-center justify-center gap-6 text-[#64707D]">
+              <div className="w-12 h-12 rounded-full border border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center">
+                 <Clock className="w-6 h-6 opacity-30" />
+              </div>
+              <span className="text-metadata tracking-widest uppercase italic">No archived snapshots found</span>
+            </div>
           ) : (
-            <motion.div 
-              key="content"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="overflow-x-auto rounded-2xl border border-[#1a2230] bg-black/40 backdrop-blur-xl shadow-inner scrollbar-hide"
-            >
-              <table className="w-full text-left border-collapse text-[11px] font-bold tracking-tight">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#121c26]/90 border-b border-[#1a2230] text-[#00E5FF] uppercase italic">
-                    <th className="py-6 px-8 tracking-[0.3em]">Temporal Identifier</th>
-                    <th className="py-6 px-8 tracking-[0.3em]">Offset</th>
-                    <th className="py-6 px-8 tracking-[0.3em] text-right">Integrity hash</th>
+                  <tr className="text-metadata uppercase opacity-40 border-b border-[rgba(255,255,255,0.06)]">
+                    <th className="py-5 px-lg font-bold">Temporal id</th>
+                    <th className="py-5 px-lg font-bold">Relative Offset</th>
+                    <th className="py-5 px-lg font-bold text-right pr-12">Registry SHA</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#16202e] text-[#e0e5ea]">
+                <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
                   {history.map((snap, idx) => (
                     <motion.tr 
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.04 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.03 }}
                       key={idx} 
-                      className="hover:bg-[#00E5FF]/5 transition-all group cursor-pointer border-l-2 border-transparent hover:border-[#00E5FF]"
+                      className="hover:bg-[rgba(255,255,255,0.02)] transition-colors group cursor-pointer"
                     >
-                      <td className="py-6 px-8 flex items-center gap-4">
-                        <Crosshair className="w-4 h-4 text-[#00E5FF] opacity-0 group-hover:opacity-100 transition-all group-hover:scale-125" />
-                        <span className="font-black tracking-widest transition-all group-hover:pl-2 group-hover:text-white uppercase">{snap.label || 'AUTO_SNAPSHOT'}</span>
+                      <td className="py-5 px-lg">
+                        <span className="text-[13px] font-semibold text-[#fdfdfe]">{snap.label || 'Automated_Rollback_Ref'}</span>
                       </td>
-                      <td className="py-6 px-8 text-[#6B7A90] font-mono italic font-black transition-colors group-hover:text-white/60">
-                        {snap.age_human || snap.timestamp_human || '0.0s OFFSET'}
+                      <td className="py-5 px-lg">
+                        <span className="text-metadata text-[#8A949E] italic">{snap.age_human || snap.timestamp_human || 'Now'}</span>
                       </td>
-                      <td className="py-6 px-8 text-right font-mono text-[#00E5FF] opacity-60 group-hover:opacity-100 transition-all">
-                        <div className="flex items-center justify-end gap-5">
-                          <span className="text-[10px] tracking-[0.2em]">{snap.commit_sha ? snap.commit_sha.substring(0, 12).toUpperCase() : 'DE31A04FC28'}</span>
-                          <ArrowRight className="w-4 h-4 -translate-x-3 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all text-[#00E5FF]" />
+                      <td className="py-5 px-lg text-right pr-12">
+                        <div className="flex items-center justify-end gap-3">
+                          <code className="text-metadata text-[#00A3FF] bg-[#00A3FF]/5 px-2 py-0.5 rounded">
+                            {snap.commit_sha ? snap.commit_sha.substring(0, 10).toUpperCase() : 'DE31A04FC2'}
+                          </code>
+                          <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-all translate-x-1" />
                         </div>
                       </td>
                     </motion.tr>
                   ))}
                 </tbody>
               </table>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
+      </div>
+      
+      <div className="flex items-start gap-4 p-lg premium-card border-dashed border-[rgba(255,255,255,0.1)] bg-transparent opacity-60">
+        <Info className="w-4 h-4 text-[#00A3FF] shrink-0 mt-0.5" />
+        <p className="text-metadata leading-relaxed">
+          Hephaestus automatically captures metadata estate snapshots upon every successful CI/CD enforcement pass. These snapshots are immutable and can be used for zero-data-loss rollback orchestrations.
+        </p>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { fetchHealth } from '../lib/api';
 import { useGovernanceStore } from '../store/useGovernanceStore';
 import { 
   Search, Settings, Bell, User, Zap, GitBranch, Shield, 
-  TerminalSquare, FileText, LifeBuoy, Activity, Play, RefreshCw
+  TerminalSquare, FileText, LifeBuoy, Activity, Play, RefreshCw, Layers
 } from 'lucide-react';
 
 export function HephaestusLayout({ children }: { children: React.ReactNode }) {
@@ -31,150 +31,147 @@ export function HephaestusLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#06090E] text-[#e0e5ea] overflow-hidden select-none">
-       {/* Global Scanline Effect */}
-      <div className="scanline"></div>
+    <div className="flex flex-col h-screen w-screen bg-[#0B0F14] text-[#fdfdfe] font-sans selection:bg-[#00A3FF] selection:text-white">
       
-      {/* TOP NAV */}
-      <header className="h-[60px] flex items-center justify-between px-6 border-b border-[#1a2230] bg-[#0A0F15]/90 backdrop-blur-xl z-50 shrink-0">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-2 cursor-pointer group">
-            <span className="text-[#00E5FF] font-black tracking-widest text-xl glow-text transition-all group-hover:tracking-[0.15em]">HEPHAESTUS</span>
+      {/* TOP NAV - Stripe Metric Style */}
+      <header className="h-[56px] flex items-center justify-between px-6 border-b border-[rgba(255,255,255,0.06)] bg-[#0B0F14]/80 backdrop-blur-xl z-50 shrink-0">
+        <div className="flex items-center gap-12">
+          <Link href="/" className="flex items-center gap-2.5 cursor-pointer">
+            <div className="w-6 h-6 bg-[#00A3FF] rounded flex items-center justify-center shadow-[0_0_15px_rgba(0,163,255,0.2)]">
+               <Layers className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-semibold tracking-[-0.03em] text-[18px]">Hephaestus</span>
           </Link>
-          <nav className="flex gap-6 text-[10px] font-bold tracking-widest text-[#6B7A90]">
-            <Link href="/" className={`transition-all hover:text-[#00E5FF] ${pathname === '/' ? 'text-[#00E5FF] border-b-2 border-[#00E5FF] pb-1' : ''}`}>LINEAGE</Link>
-            <Link href="/" className={`transition-all hover:text-[#00E5FF] ${pathname.includes('/engine') ? 'text-[#00E5FF] border-b-2 border-[#00E5FF] pb-1' : ''}`}>ENGINE</Link>
-            <Link href="/timeline" className={`transition-all hover:text-[#00E5FF] ${pathname === '/timeline' ? 'text-[#00E5FF] border-b-2 border-[#00E5FF] pb-1' : ''}`}>LOGS</Link>
-            <Link href="/evaluate" className={`transition-all hover:text-[#00E5FF] ${pathname === '/evaluate' ? 'text-[#00E5FF] border-b-2 border-[#00E5FF] pb-1' : ''}`}>SENTINEL</Link>
+          <nav className="flex gap-8 text-[13px] font-medium text-[#8A949E]">
+            <Link href="/" className={`transition-all hover:text-white ${pathname === '/' ? 'text-white' : ''}`}>Dashboard</Link>
+            <Link href="/" className={`transition-all hover:text-white ${pathname.includes('/engine') ? 'text-white' : ''}`}>Analysis</Link>
+            <Link href="/timeline" className={`transition-all hover:text-white ${pathname === '/timeline' ? 'text-white' : ''}`}>Chronos</Link>
+            <Link href="/evaluate" className={`transition-all hover:text-white ${pathname === '/evaluate' ? 'text-white' : ''}`}>Sentinel</Link>
           </nav>
         </div>
-        <div className="flex items-center gap-6">
+        
+        <div className="flex items-center gap-4">
           <motion.button 
-             whileHover={{ scale: 1.05 }}
-             whileTap={{ scale: 0.95 }}
+             whileHover={{ scale: 1.02 }}
+             whileTap={{ scale: 0.98 }}
              onClick={() => runEvaluation()}
              disabled={loading}
-             className="flex items-center gap-2 px-4 py-1.5 bg-[#00E5FF] text-black rounded font-black text-[10px] tracking-widest shadow-[0_0_15px_rgba(0,229,255,0.4)] disabled:opacity-50"
+             className="btn-primary flex items-center gap-2 h-8 px-4"
           >
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-black" />}
-            ANALYZE NOW
+            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+            Analyze
           </motion.button>
 
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7A90]" />
+          <div className="relative border-x border-[rgba(255,255,255,0.06)] px-4 mx-2">
+            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#64707D]" />
             <input 
               type="text" 
-              placeholder="QUERY_ID..." 
-              className="bg-[#111721] border border-[#1d2737] rounded focus:outline-none focus:border-[#00E5FF] text-[10px] py-2 pl-9 pr-4 w-40 transition-all font-mono"
+              placeholder="Search data..." 
+              className="bg-transparent border-none text-[13px] py-1.5 pl-8 pr-2 w-32 focus:outline-none focus:w-48 transition-all text-[#fdfdfe] placeholder-[#64707D]"
             />
           </div>
-          <div className="flex gap-4 text-[#6B7A90]">
-            <Settings className="w-4 h-4 hover:text-[#00E5FF] cursor-pointer transition-colors" />
+
+          <div className="flex gap-4 text-[#8A949E]">
+            <Settings className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
             <div className="relative">
-              <Bell className="w-4 h-4 hover:text-[#00E5FF] cursor-pointer transition-colors" />
-              <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-[#ff5b5b] rounded-full border border-[#06090e]"></div>
+              <Bell className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
+              {healthStatus && <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#EF4444] rounded-full border border-black"></div>}
             </div>
-            <div className="w-7 h-7 rounded bg-[#1f2b38] flex items-center justify-center border border-[#303e50] ml-2 cursor-pointer hover:border-[#00E5FF] transition-all">
-              <User className="w-4 h-4 text-[#00E5FF]" />
+            <div className="w-7 h-7 rounded-full bg-[#181E26] flex items-center justify-center border border-[rgba(255,255,255,0.1)] ml-2 cursor-pointer hover:border-[#00A3FF] transition-all">
+              <User className="w-4 h-4 text-[#00A3FF]" />
             </div>
           </div>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* SIDEBAR */}
-        <aside className="w-[210px] flex flex-col justify-between border-r border-[#1a2230] bg-[#080B10] shrink-0 p-5 z-40">
-          <div className="flex flex-col gap-6">
-            <div className="flex items-start gap-3 mb-2 p-3 rounded bg-gradient-to-br from-[#121c26] to-[#0A0F15] border border-[#1a2533] shadow-lg shadow-[#00f0ff]/5">
-              <div className="mt-1 text-[#00E5FF]"><Zap className="w-5 h-5" fill="currentColor" /></div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-[11px] tracking-wider">CORE_ENGINE</span>
-                <span className="text-[#00E5FF] text-[9px] tracking-widest font-mono">V2.0.4-STABLE</span>
-              </div>
+        {/* SIDEBAR - Clean Linear Style */}
+        <aside className="w-[200px] flex flex-col justify-between border-r border-[rgba(255,255,255,0.06)] bg-[#0B0F14] shrink-0 px-4 py-8 z-40">
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center gap-3 px-2">
+               <div className="flex flex-col">
+                 <span className="text-[11px] font-bold tracking-[0.05em] text-[#64707D]">WORKSPACE</span>
+                 <span className="text-[13px] font-semibold text-[#fdfdfe]">Genesis Core</span>
+               </div>
             </div>
 
-            <nav className="flex flex-col gap-1.5">
-              <Link href="/" className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-all ${pathname === '/' ? 'bg-[#121C26] text-[#00E5FF] border-l-2 border-[#00E5FF] rounded-r' : 'text-[#6B7A90] hover:text-white hover:bg-white/5'}`}>
+            <nav className="flex flex-col gap-1">
+              <Link href="/" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all group ${pathname === '/' ? 'bg-[rgba(255,255,255,0.03)] text-white shadow-sm' : 'text-[#8A949E] hover:text-white hover:bg-[rgba(255,255,255,0.02)]'}`}>
+                <Activity className={`w-4 h-4 transition-colors ${pathname === '/' ? 'text-[#00A3FF]' : 'group-hover:text-[#00A3FF]'}`} />
+                <span className="text-[13px] font-medium">Overview</span>
+              </Link>
+              <Link href="/" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all group ${pathname.includes('/engine') ? 'bg-[rgba(255,255,255,0.03)] text-white' : 'text-[#8A949E] hover:text-white hover:bg-[rgba(255,255,255,0.02)]'}`}>
                 <GitBranch className="w-4 h-4" />
-                <span className="text-[11px] font-bold tracking-wide">Lineage</span>
+                <span className="text-[13px] font-medium">Lineage</span>
               </Link>
-              <Link href="/" className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-all ${pathname.includes('/engine') ? 'bg-[#121C26] text-[#00E5FF] border-l-2 border-[#00E5FF] rounded-r' : 'text-[#6B7A90] hover:text-white hover:bg-white/5'}`}>
-                <Activity className="w-4 h-4" />
-                <span className="text-[11px] font-bold tracking-wide">Engine</span>
-              </Link>
-              <Link href="/timeline" className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-all ${pathname === '/timeline' ? 'bg-[#121C26] text-[#00E5FF] border-l-2 border-[#00E5FF] rounded-r' : 'text-[#6B7A90] hover:text-white hover:bg-white/5'}`}>
+              <Link href="/timeline" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all group ${pathname === '/timeline' ? 'bg-[rgba(255,255,255,0.03)] text-white' : 'text-[#8A949E] hover:text-white hover:bg-[rgba(255,255,255,0.02)]'}`}>
                 <TerminalSquare className="w-4 h-4" />
-                <span className="text-[11px] font-bold tracking-wide">Logs</span>
+                <span className="text-[13px] font-medium">History</span>
               </Link>
-              <Link href="/evaluate" className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-all ${pathname === '/evaluate' ? 'bg-[#121C26] text-[#00E5FF] border-l-2 border-[#00E5FF] rounded-r' : 'text-[#6B7A90] hover:text-white hover:bg-white/5'}`}>
+              <Link href="/evaluate" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all group ${pathname === '/evaluate' ? 'bg-[rgba(255,255,255,0.03)] text-white' : 'text-[#8A949E] hover:text-white hover:bg-[rgba(255,255,255,0.02)]'}`}>
                 <Shield className="w-4 h-4" />
-                <span className="text-[11px] font-bold tracking-wide">Sentinel</span>
+                <span className="text-[13px] font-medium">Governance</span>
               </Link>
             </nav>
 
-            <motion.button 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="mt-4 neon-btn w-full py-3 rounded text-[10px] font-black tracking-widest text-[#00E5FF] border border-[#00E5FF]/30 shadow-lg shadow-[#00f0ff]/10 uppercase"
-            >
-              DEPLOY NEW NODE
-            </motion.button>
+            <div className="mt-4 flex flex-col gap-4">
+               <span className="px-3 text-[11px] font-bold tracking-[0.05em] text-[#64707D]">RESOURCES</span>
+               <div className="flex flex-col gap-1">
+                 <div className="flex items-center gap-3 px-3 py-1.5 text-[#8A949E] hover:text-white transition-colors cursor-pointer group">
+                   <FileText className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                   <span className="text-[13px]">Docs</span>
+                 </div>
+                 <div className="flex items-center gap-3 px-3 py-1.5 text-[#8A949E] hover:text-white transition-colors cursor-pointer group">
+                   <LifeBuoy className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                   <span className="text-[13px]">Support</span>
+                 </div>
+               </div>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 text-[#6B7A90] text-[10px] font-bold tracking-wider">
-            <div className="flex items-center gap-3 cursor-pointer hover:text-white transition-colors">
-              <FileText className="w-4 h-4" />
-              <span>DOCUMENTATION</span>
-            </div>
-            <div className="flex items-center gap-3 cursor-pointer hover:text-white transition-colors">
-              <LifeBuoy className="w-4 h-4" />
-              <span>SUPPORT</span>
-            </div>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[#12171D] border border-[rgba(255,255,255,0.03)]">
+             <div className="flex flex-col">
+               <span className="text-[10px] font-bold text-[#64707D]">ENGINE_V2</span>
+               <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${healthStatus ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`}></div>
+                  <span className="text-[11px] font-semibold">{healthStatus ? 'Stable' : 'Error'}</span>
+               </div>
+             </div>
+             <Settings className="w-3 h-3 text-[#64707D] cursor-pointer hover:text-white" />
           </div>
         </aside>
 
         {/* MAIN AREA */}
-        <main className="flex-1 overflow-hidden bg-[#0B1017] relative">
+        <main className="flex-1 overflow-hidden bg-[#0B0F14] relative dot-pattern">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="h-full w-full"
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="h-full w-full p-8"
             >
               {children}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
-
-      {/* BOTTOM STATUS BAR */}
-      <footer className="h-[35px] flex items-center justify-between px-6 border-t border-[#1a2230] bg-[#06090E] shrink-0 text-[10px] font-mono font-bold text-[#6B7A90] relative z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${healthStatus ? 'bg-[#39ff14] shadow-[0_0_10px_#39ff14]' : 'bg-[#ff5b5b] shadow-[0_0_10px_#ff5b5b] animate-pulse'}`}></div>
-            <span className="text-white tracking-[0.2em]">{healthStatus ? 'STREAM ACTIVE' : 'SYSTEM DISCONNECTED'}</span>
-          </div>
-          <div className="flex items-center gap-2 opacity-60">
-            <span>TX_ID:</span>
-            <span className="text-white uppercase transition-all">F8A2-991C-42X0</span>
-          </div>
+      
+      {/* Footer Area - Minimal */}
+      <footer className="h-[28px] flex items-center justify-between px-6 bg-[#0B0F14] border-t border-[rgba(255,255,255,0.06)] shrink-0 text-[10px] font-medium text-[#64707D]">
+        <div className="flex items-center gap-6">
+           <span className="flex items-center gap-2">
+              <span className="text-[#8A949E]">Session</span>
+              <span className="font-mono">8A2-991C</span>
+           </span>
+           <span className="flex items-center gap-2">
+              <span className="text-[#8A949E]">Status</span>
+              <span className={healthStatus ? 'text-[#10B981]' : 'text-[#EF4444]'}>Operational</span>
+           </span>
         </div>
-        <div className="flex items-center gap-8 pr-12">
-          <div className="flex gap-3">
-            <span className="opacity-50 tracking-widest">CPU_LOAD</span>
-            <span className="text-[#00E5FF] transition-all">14.2%</span>
-          </div>
-          <div className="flex gap-3">
-             <span className="opacity-50 tracking-widest">QUEUE_LAT</span>
-             <span className="text-[#39ff14]">0.0 ms</span>
-          </div>
-        </div>
-        {/* Decorative middle cutout */}
-        <div className="absolute left-1/2 bottom-0 w-[120px] h-3.5 bg-[#111721] rounded-t-[20px] -translate-x-1/2 border-t border-l border-r border-[#1a2230] flex items-center justify-center">
-            <div className="w-10 h-1 bg-white/5 rounded-full" />
+        <div className="flex gap-6">
+           <span>Hephaestus Governance Logic V0.1.0</span>
         </div>
       </footer>
     </div>

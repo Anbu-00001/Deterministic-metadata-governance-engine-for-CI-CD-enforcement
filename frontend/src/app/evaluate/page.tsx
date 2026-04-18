@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { evaluateSentinel } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Play, Crosshair, Cpu, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Loader2, Play, Cpu, ShieldAlert, CheckCircle, Code } from 'lucide-react';
 
 export default function EvaluatePage() {
   const [jsonInput, setJsonInput] = useState('');
@@ -16,23 +16,20 @@ export default function EvaluatePage() {
       setError('Awaiting payload data injection...');
       return;
     }
-
     let parsed;
     try {
       parsed = JSON.parse(jsonInput);
     } catch (e) {
-      setError('INTEGRITY_VIOLATION: Invalid JSON syntax detected.');
+      setError('INVALID_JSON: Potential syntax error in metadata payload.');
       return;
     }
-
     setLoading(true);
     setError('');
-    
     try {
       const res = await evaluateSentinel(parsed);
       setResult(Array.isArray(res) ? res[0] : res);
     } catch (err: any) {
-      setError(err.message || 'ENGINE_FAULT: RPC connection refused.');
+      setError(err.message || 'ENGINE_FAULT: RPC transport level error.');
       setResult(null);
     } finally {
       setLoading(false);
@@ -42,165 +39,144 @@ export default function EvaluatePage() {
   const isPass = !result?.fgs?.is_blocked ?? true;
 
   return (
-    <div className="p-8 h-full flex flex-col relative grid grid-cols-12 gap-8">
-      <div className="col-span-12 mb-2 z-10">
-        <h1 className="text-2xl font-black tracking-[0.3em] text-[#00E5FF] glow-text uppercase italic">Sentinel Evaluator</h1>
-        <p className="text-[10px] text-[#6B7A90] font-mono mt-1 font-bold tracking-widest uppercase opacity-60">High-Velocity Governance Payload Injection</p>
+    <div className="flex flex-col gap-12 max-w-[1200px] mx-auto pb-16">
+      
+      {/* HEADER */}
+      <div className="flex justify-between items-end">
+        <div className="flex flex-col gap-2">
+           <div className="flex items-center gap-3 text-metadata uppercase tracking-widest opacity-60">
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Sentinel sandbox</span>
+           </div>
+           <h1>Governance Testing</h1>
+        </div>
+        <button 
+           className="btn-primary flex items-center gap-2"
+           onClick={handleSubmit}
+           disabled={loading}
+        >
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+          Run Simulation
+        </button>
       </div>
 
-      {/* Input Col */}
-      <div className="col-span-12 lg:col-span-6 flex flex-col gap-6 h-full">
-        <motion.div 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="panel-border rounded-xl flex flex-col p-6 h-full bg-[#0d1219]/60 backdrop-blur-2xl relative shadow-2xl"
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-[10px] font-black tracking-widest text-[#6B7A90] uppercase flex items-center gap-3">
-              <Cpu className="w-3.5 h-3.5 text-[#00E5FF]" />
-              Payload Buffer
-            </h3>
-            <span className="px-2 py-0.5 rounded border border-[#00E5FF]/30 text-[9px] text-[#00E5FF] font-black italic tracking-widest">MTU_SYNC</span>
-          </div>
-          
-          <textarea
-            className="w-full flex-1 bg-black/40 border border-[#16202e] rounded-lg p-5 font-mono text-xs text-[#00f0ff] focus:outline-none focus:border-[#00E5FF] transition-all resize-none mb-6 shadow-inner custom-scrollbar"
-            placeholder='{ "metadata": { "TABLE_ID": { "COL": { "description": "...", "tags": ["PII"] } } } }'
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            spellCheck={false}
-          />
-          
-          <motion.button
-            whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(0, 240, 255, 0.2)" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSubmit}
-            disabled={loading}
-            className="neon-btn w-full flex items-center justify-center gap-3 py-4 rounded-xl text-[11px] font-black tracking-[0.4em] text-[#00E5FF] border border-[#00E5FF]/40 bg-[#00E5FF]/5 uppercase disabled:opacity-30"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin text-[#00E5FF]" /> : <Play className="w-4 h-4 fill-[#00e5ff]" />}
-            {loading ? 'CALCULATING_MATRIX...' : 'EXECUTE_OPTIMIZATION'}
-          </motion.button>
-          
-          {error && (
-            <motion.div 
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="mt-4 text-[#ff5b5b] text-[10px] font-black border border-[#ff5b5b]/30 bg-[#ff5b5b]/10 p-3 rounded-lg italic tracking-widest"
-            >
-              ⚠ {error}
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+      <div className="grid grid-cols-12 gap-lg">
+        
+        {/* INPUT AREA */}
+        <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+           <div className="premium-card p-lg flex flex-col min-h-[500px] bg-[#12171D]">
+              <div className="flex items-center gap-3 mb-6">
+                 <Code className="w-4 h-4 text-[#00A3FF]" />
+                 <h3 className="text-xs">Metadata Payload</h3>
+              </div>
+              
+              <textarea
+                className="w-full flex-1 bg-[#0B0F14] border border-[rgba(255,255,255,0.06)] rounded-lg p-6 font-mono text-[13px] text-[#8A949E] focus:outline-none focus:border-[#00A3FF] transition-all resize-none mb-6 scrollbar-hide"
+                placeholder='{ "metadata": { "TABLE_ID": { "COL": { "description": "...", "tags": ["PII"] } } } }'
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                spellCheck={false}
+              />
+              
+              <div className="flex justify-between items-center text-metadata opacity-40">
+                 <span>Format: JSON Standard</span>
+                 <span>Buffer Size: {jsonInput.length} bytes</span>
+              </div>
+           </div>
+           
+           {error && (
+             <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-4 rounded-xl border border-[#EF4444]/20 bg-[#EF4444]/5 text-[#EF4444] text-metadata font-bold tracking-wide flex items-center gap-3"
+             >
+               <ShieldAlert className="w-4 h-4" />
+               {error}
+             </motion.div>
+           )}
+        </div>
 
-      {/* Output Col */}
-      <div className="col-span-12 lg:col-span-6 flex flex-col h-full">
-        <motion.div 
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="panel-border rounded-xl flex flex-col p-6 h-full bg-[#0d1219]/60 backdrop-blur-2xl relative shadow-2xl border-[#1a2230]"
-        >
-          <h3 className="text-[10px] font-black tracking-widest text-[#6B7A90] mb-8 uppercase flex items-center gap-3">
-            <ShieldAlert className="w-3.5 h-3.5 text-[#00E5FF]" />
-            Extraction Telemetry
-          </h3>
-          
-          <AnimatePresence mode="wait">
-            {!result && !loading ? (
-              <motion.div 
-                key="await"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 border border-dashed border-[#1a2230] bg-black/20 rounded-xl flex flex-col items-center justify-center text-[#4A5568] text-[10px] font-mono font-bold italic"
-              >
-                 <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
-                    AWAITING_PAYLOAD_INJECTION...
-                 </motion.div>
-              </motion.div>
-            ) : null}
+        {/* OUTPUT AREA */}
+        <div className="col-span-12 lg:col-span-5 flex flex-col">
+           <div className="premium-card p-lg h-full bg-[#12171D] border-dashed">
+              <h3 className="text-xs mb-10">Analysis Result</h3>
+              
+              <AnimatePresence mode="wait">
+                {!result && !loading ? (
+                  <motion.div 
+                    key="await"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex-1 flex flex-col items-center justify-center text-[#64707D] gap-6 text-center py-20"
+                  >
+                     <div className="w-16 h-16 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] flex items-center justify-center">
+                        <Play className="w-6 h-6 opacity-20" />
+                     </div>
+                     <span className="text-metadata uppercase tracking-widest leading-relaxed">
+                        Input metadata payload<br />to trigger evaluation
+                     </span>
+                  </motion.div>
+                ) : null}
 
-            {loading ? (
-              <motion.div 
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 bg-black/20 rounded-xl flex flex-col items-center justify-center text-[#00E5FF]"
-              >
-                <div className="relative w-20 h-20 mb-6">
-                   <Loader2 className="w-full h-full animate-spin opacity-20" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-4 h-4 bg-[#00E5FF] rounded-full animate-ping" />
-                   </div>
-                </div>
-                <span className="text-[10px] font-black tracking-[0.4em] animate-pulse italic">SYNCING_SECURITY_MANIFESTS...</span>
-              </motion.div>
-            ) : null}
+                {loading ? (
+                  <motion.div 
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex-1 flex flex-col items-center justify-center text-[#00A3FF] py-20"
+                  >
+                    <Loader2 className="w-8 h-8 animate-spin mb-6" />
+                    <span className="text-metadata font-bold tracking-[0.2em] animate-pulse">Synchronizing logic...</span>
+                  </motion.div>
+                ) : null}
 
-            {result && !loading ? (
-              <motion.div 
-                key="result"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-6 h-full overflow-y-auto pr-3 custom-scrollbar"
-              >
-                {/* Result Verdict Card */}
-                <div className={`p-6 border-l-4 rounded-xl bg-gradient-to-r relative overflow-hidden ${isPass ? 'from-[#39ff14]/10 to-transparent border-[#39ff14]/60' : 'from-[#ff5b5b]/10 to-transparent border-[#ff5b5b]/60'}`}>
-                   <div className="absolute top-0 right-0 p-2 opacity-20">
-                      {isPass ? <CheckCircle className="w-12 h-12" /> : <ShieldAlert className="w-12 h-12" />}
-                   </div>
-                   <h4 className={`text-2xl font-black tracking-[0.4em] mb-2 italic ${isPass ? 'text-[#39ff14] glow-text' : 'text-[#ff5b5b] glow-text'}`}>
-                     {isPass ? 'VERDICT: PASS' : 'VERDICT: BLOCK'}
-                   </h4>
-                   <p className="text-[11px] text-[#e0e5ea] font-mono font-bold leading-relaxed">{result.fgs?.explanation || 'Automatic policy compliance verified through Genesis Core.'}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="border border-[#1a2230] bg-black/40 p-5 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-[#00E5FF]/40 transition-all">
-                    <span className="text-[9px] font-black tracking-[0.2em] text-[#6B7A90] mb-3 uppercase italic opacity-60">Genesis Score</span>
-                    <span className="text-4xl font-black text-white glow-text italic transition-transform group-hover:scale-110">{result.fgs?.score?.toFixed(2) || '0.00'}</span>
-                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#00E5FF]/20" />
-                  </div>
-
-                  <div className="border border-[#1a2230] bg-black/40 p-5 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-[#ffb48f]/40 transition-all">
-                    <span className="text-[9px] font-black tracking-[0.2em] text-[#6B7A90] mb-3 uppercase italic opacity-60">Spectral Blast</span>
-                    <span className="text-4xl font-black text-[#ffb48f] drop-shadow-[0_0_15px_rgba(255,180,143,0.3)] italic transition-transform group-hover:scale-110">{result.fgs?.blast_radius || 0}</span>
-                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#ffb48f]/20" />
-                  </div>
-                </div>
-
-                 {/* Detailed Processors */}
-                 {result.skills_findings && result.skills_findings.length > 0 && (
-                    <div className="flex flex-col gap-3 mt-2">
-                      <span className="text-[10px] font-black tracking-[0.3em] text-[#6B7A90] mb-2 uppercase opacity-60">Engine Sub-Processors</span>
-                      {result.skills_findings.map((skill: any, idx: number) => (
-                        <motion.div 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          key={idx} 
-                          className="flex items-center justify-between p-4 border border-[#16202e] bg-black/40 rounded-xl hover:bg-white/5 transition-all group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Crosshair className={`w-4 h-4 transition-all ${skill.result?.error ? 'text-[#ff5b5b]' : 'text-[#00E5FF] group-hover:rotate-90'}`} />
-                            <span className="text-[11px] text-white font-mono font-bold tracking-tight">{skill.skill.toUpperCase()}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className={`text-[9px] font-black tracking-widest italic ${skill.result?.error ? 'text-[#ff5b5b]' : 'text-[#39ff14]'}`}>
-                               {skill.result?.error ? 'FAULT' : 'ACTIVE'}
-                            </div>
-                            <div className={`w-1.5 h-1.5 rounded-full ${skill.result?.error ? 'bg-[#ff5b5b] shadow-[0_0_5px_#ff5b5b]' : 'bg-[#39ff14] shadow-[0_0_5px_#39ff14]'}`} />
-                          </div>
-                        </motion.div>
-                      ))}
+                {result && !loading ? (
+                  <motion.div 
+                    key="result"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col gap-10"
+                  >
+                    <div className={`p-8 rounded-2xl border flex flex-col items-center gap-4 text-center ${isPass ? 'border-[#10B981]/20 bg-[#10B981]/5' : 'border-[#EF4444]/20 bg-[#EF4444]/5'}`}>
+                       <h4 className={`text-[32px] font-black tracking-tighter ${isPass ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                         {isPass ? 'POLICY PASSED' : 'POLICY BLOCKED'}
+                       </h4>
+                       <p className="text-body max-w-[280px]">
+                         {result.fgs?.explanation || 'Sentinel verified policy enforcement criteria successfully.'}
+                       </p>
                     </div>
-                 )}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </motion.div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="premium-card p-md flex flex-col items-center gap-2 bg-[#0B0F14]">
+                          <span className="text-metadata uppercase opacity-40">Genesis score</span>
+                          <span className="text-[24px] font-bold">{result.fgs?.score?.toFixed(1) || '0.0'}</span>
+                       </div>
+                       <div className="premium-card p-md flex flex-col items-center gap-2 bg-[#0B0F14]">
+                          <span className="text-metadata uppercase opacity-40">Downstream Impact</span>
+                          <span className="text-[24px] font-bold text-[#F59E0B]">{result.fgs?.blast_radius || 0}</span>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                       <h3 className="text-xs uppercase opacity-40">Processor findings</h3>
+                       {result.skills_findings?.map((skill: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center p-4 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[#0B0F14]">
+                             <span className="text-metadata font-bold tracking-tight text-white">{skill.skill.toUpperCase()}</span>
+                             <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-black italic ${skill.result?.error ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
+                                   {skill.result?.error ? 'FAILED' : 'VERIFIED'}
+                                </span>
+                                <CheckCircle className={`w-3 h-3 ${skill.result?.error ? 'text-[#EF4444]' : 'text-[#10B981]'}`} />
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+           </div>
+        </div>
+
       </div>
     </div>
   );
