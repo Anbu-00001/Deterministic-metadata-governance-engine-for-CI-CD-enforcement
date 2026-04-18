@@ -27,7 +27,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health, rollback, timeline
+from api.routes import health, rollback, timeline, sentinel
 from config import settings
 
 
@@ -60,4 +60,5 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(timeline.router, prefix="/api/v1")
 app.include_router(rollback.router, prefix="/api/v1")
+app.include_router(sentinel.router, prefix="/api")
 
