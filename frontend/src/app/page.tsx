@@ -1,231 +1,294 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { evaluateSentinel } from '../lib/api';
-import { AlertTriangle, CheckCircle2, Expand, Crosshair } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CheckCircle2, AlertTriangle, Expand, Activity, Loader2, Crosshair, Zap 
+} from 'lucide-react';
+
+import { fetchHealth, evaluateSentinel, EvaluationResult } from '../lib/api';
+import { useMousePosition } from '../hooks/useMouse';
+import { InteractiveCard } from '../components/InteractiveCard';
+import { FgsGauge3D } from '../components/FgsGauge3D';
+import { BlastRadius3D } from '../components/BlastRadius3D';
+import { ChangeMagnitudeBars } from '../components/ChangeMagnitudeBars';
 
 export default function Dashboard() {
-  const [evalResult, setEvalResult] = useState<any>(null);
+  const [evalResults, setEvalResults] = useState<EvaluationResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  
+  const mouse = useMousePosition();
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const results = await evaluateSentinel({}).catch(() => []);
+      setEvalResults(results);
+      setLastUpdate(new Date());
+    } catch (e) {
+      console.error("Dashboard Eval Error:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function load() {
-      try {
-        const evaluation = await evaluateSentinel({}).catch(() => null);
-        setEvalResult(evaluation && evaluation.length > 0 ? evaluation[0] : null);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    load();
-    const intv = setInterval(load, 5000); // Polling for real-time evaluate updates
-    return () => clearInterval(intv);
+    loadData();
+    const interval = setInterval(loadData, 60000); // Poll evaluations every minute
+    return () => clearInterval(interval);
   }, []);
 
-  const fgsScore = evalResult?.fgs?.score || 75.4;
-  const isPass = !evalResult?.fgs?.is_blocked ?? true;
+  const activeResult = useMemo(() => evalResults[0], [evalResults]);
+  const isPass = !activeResult?.fgs?.is_blocked ?? true;
+  const score = activeResult?.fgs?.score || 0;
 
   return (
     <div className="p-6 h-full grid grid-cols-12 grid-rows-6 gap-6 relative">
+      
+      {/* Background depth decor */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-10"
+        style={{
+          transform: `translate(${mouse.x * 30}px, ${mouse.y * 30}px) translateZ(-100px)`,
+          backgroundImage: `radial-gradient(circle at 50% 50%, #00E5FF 0%, transparent 80%)`
+        }}
+      />
+
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#0B1017]/60 backdrop-blur-md z-40 flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-4">
+               <Loader2 className="w-12 h-12 text-[#00E5FF] animate-spin" />
+               <span className="text-[10px] font-black tracking-[0.4em] text-[#00E5FF] animate-pulse">RECALIBRATING_GENESIS_CORE</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* COL 1: Context & Lineage */}
       <div className="col-span-3 row-span-6 flex flex-col gap-6">
-        <div className="panel-border rounded flex flex-col p-5 flex-shrink-0">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90]">INPUT CONTEXT</h3>
-            <span className="px-2 py-0.5 rounded bg-[#1a2636] border border-[#26374a] text-[9px] text-[#00E5FF] font-bold">LIVE</span>
-          </div>
-          <p className="text-xs text-[#a0aab8] leading-relaxed mb-5">
-            Detected 4 high-velocity schema mutations in <span className="text-white font-mono bg-[#141b24] px-1 py-0.5 rounded">cluster-gamma-9</span>.
-          </p>
-          
-          <div className="flex flex-col gap-3">
-            <div className="p-3 border border-[#2d2121] bg-[#1a1215] rounded">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold text-[#00E5FF]">USERS_METADATA</span>
-                <AlertTriangle className="w-3 h-3 text-[#ff5b5b]" />
-              </div>
-              <div className="w-full h-1 bg-[#2d1b1f] rounded overflow-hidden mb-2">
-                <div className="h-full w-4/5 bg-[#ff5b5b]"></div>
-              </div>
-              <div className="flex justify-between text-[8px] font-bold tracking-wider text-[#6B7A90]">
-                <span>SCHEMA CHANGE</span>
-                <span className="text-[#ff5b5b]">CRITICAL</span>
+        <InteractiveCard className="flex flex-col flex-shrink-0">
+          <div className="panel-border rounded flex flex-col p-5 bg-[#0d1219]/60 backdrop-blur-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] uppercase underline decoration-[#00E5FF]/30 underline-offset-4">Input Context</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#39ff14] shadow-[0_0_8px_#39ff14]" />
+                <span className="text-[9px] text-[#00E5FF] font-black italic">STREAMING</span>
               </div>
             </div>
+            <p className="text-xs text-[#a0aab8] font-medium leading-relaxed mb-5">
+              Detected <span className="text-[#00E5FF] font-black">{evalResults.length}</span> security-critical schema mutations in <span className="text-white font-mono bg-[#141b24] px-1 py-0.5 rounded">cluster-gamma-9</span>.
+            </p>
+            
+            <div className="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+              {evalResults.map((res, i) => (
+                <motion.div 
+                  initial={{ x: -10, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  key={res.entity_fqn} 
+                  className={`p-3 border rounded-lg transition-all group ${res.fgs.is_blocked ? 'border-[#ff5b5b]/40 bg-[#ff5b5b]/5' : 'border-[#1a2230] bg-[#0A0F15] hover:border-[#00E5FF]/40'}`}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-[#00E5FF] truncate max-w-[130px] group-hover:glow-text transition-all">{res.entity_fqn}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border ${res.fgs.is_blocked ? 'text-[#ff5b5b] border-[#ff5b5b]/30' : 'text-[#39ff14] border-[#39ff14]/30'}`}>
+                      {res.fgs.is_blocked ? 'CRITICAL' : 'SAFE'}
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden mb-2">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${res.fgs.score}%` }}
+                      className={`h-full ${res.fgs.is_blocked ? 'bg-[#ff5b5b]' : 'bg-[#00E5FF]'}`}
+                     />
+                  </div>
+                  <div className="flex justify-between text-[8px] font-bold tracking-widest text-[#6B7A90] uppercase opacity-60">
+                    <span>FGS_SCORE</span>
+                    <span>{res.fgs.score.toFixed(1)}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </InteractiveCard>
 
-            <div className="p-3 border border-[#162529] bg-[#0d161a] rounded">
-              <div className="flex justify-between items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-[#00E5FF]">TRANSACTION_LOG_V2</span>
-                <CheckCircle2 className="w-3 h-3 text-[#00E5FF]" />
-              </div>
-              <div className="flex justify-between text-[8px] font-bold tracking-wider text-[#6B7A90]">
-                <span>NEW TABLE</span>
-                <span className="text-[#00E5FF]">STABLE</span>
+        <InteractiveCard className="flex-1">
+          <div className="panel-border rounded flex flex-col p-5 h-full relative overflow-hidden group bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
+            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4 uppercase">Lineage Topology</h3>
+            <div className="flex-1 rounded-xl border border-[#16202e] bg-black/40 dot-pattern relative flex items-center justify-center overflow-hidden">
+              <BlastRadius3D data={activeResult?.fgs} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+              <div className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-[#111721] border border-[#1d2737] cursor-pointer hover:scale-110 transition-transform shadow-2xl">
+                <Expand className="w-4 h-4 text-[#6B7A90] group-hover:text-[#00E5FF]" />
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="panel-border rounded flex flex-col p-5 flex-1 relative overflow-hidden group">
-          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4">LINEAGE PREVIEW</h3>
-          <div className="flex-1 rounded border border-[#16202e] bg-[#080d12] dot-pattern relative flex items-center justify-center">
-            <div className="w-10 h-10 border border-[#00E5FF]/30 bg-[#00E5FF]/10 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,255,0.2)]">
-              <span className="text-[#00E5FF] font-mono text-xs">{'<->'}</span>
-            </div>
-            <Expand className="absolute bottom-2 right-2 w-3 h-3 text-[#4A5568] group-hover:text-[#00E5FF] cursor-pointer" />
-            <div className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-[40px] w-5 h-px bg-[#00E5FF]/40"></div>
-            <div className="absolute top-1/2 right-1/2 -translate-y-1/2 translate-x-[40px] w-5 h-px bg-[#00E5FF]/40"></div>
-          </div>
-        </div>
+        </InteractiveCard>
       </div>
 
       {/* COL 2: FGS Score & Change Magnitude */}
       <div className="col-span-4 row-span-6 flex flex-col gap-6">
-        <div className="panel-border rounded flex flex-col p-5 flex-[2]">
-          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8">FGS SCORE</h3>
-          <div className="flex flex-col items-center justify-center flex-1">
-            <div className="relative w-48 h-48 flex items-center justify-center mb-8">
-              <div className="absolute inset-0 rounded-full border-[6px] border-[#0F1E2A]"></div>
-              <svg className="absolute inset-0 w-full h-full -rotate-90">
-                <circle cx="96" cy="96" r="90" fill="transparent" stroke="url(#cyan-gradient)" strokeWidth="6" strokeDasharray="565" strokeDashoffset={565 - (565 * fgsScore) / 100} className="drop-shadow-[0_0_8px_rgba(0,229,255,0.7)] transition-all duration-1000" strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="cyan-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#00E5FF" />
-                    <stop offset="100%" stopColor="#00E5FF" stopOpacity="0.5" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="flex flex-col items-center text-center z-10 animate-pulse">
-                <span className="text-5xl font-black text-white glow-text tracking-tighter">{fgsScore.toFixed(1)}</span>
-                <span className="text-[9px] font-bold tracking-[0.2em] text-[#6B7A90] mt-2">OPTIMIZED</span>
-              </div>
-            </div>
-            
-            <div className="flex w-full justify-around mt-4">
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-[#6B7A90] font-bold tracking-wider mb-1">VELOCITY</span>
-                <span className="text-white text-sm font-mono">+12.4%</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-[#6B7A90] font-bold tracking-wider mb-1">RELIABILITY</span>
-                <span className="text-white text-sm font-mono">99.98%</span>
+        <InteractiveCard intensity={10} className="flex-[2]">
+          <div className="panel-border rounded flex flex-col p-5 h-full bg-[#0d1219]/60 backdrop-blur-lg relative border-[#1a2230]">
+            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-6 uppercase">Governance Evaluation</h3>
+            <div className="flex flex-col items-center justify-center flex-1">
+              <FgsGauge3D score={score} />
+              
+              <div className="flex w-full justify-around mt-6 pt-6 border-t border-white/5 font-mono">
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] text-[#6B7A90] font-black tracking-widest mb-1 opacity-50">VELOCITY_OFFSET</span>
+                  <span className="text-[#00E5FF] text-sm font-black">+12.4%</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] text-[#6B7A90] font-black tracking-widest mb-1 opacity-50">INTEGRITY_INDEX</span>
+                  <span className="text-[#39ff14] text-sm font-black">99.98%</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </InteractiveCard>
 
-        <div className="panel-border rounded flex flex-col p-5 flex-[1]">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90]">CHANGE MAGNITUDE</h3>
-            <div className="flex gap-3">
-              <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF]"></div><span className="text-[8px] text-[#6B7A90]">ACTIVE</span></div>
-              <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#4A5568]"></div><span className="text-[8px] text-[#6B7A90]">BASELINE</span></div>
+        <InteractiveCard className="flex-[1]">
+          <div className="panel-border rounded flex flex-col p-5 h-full bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] uppercase italic">Drift Magnitude Historical</h3>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shadow-[0_0_5px_#00E5FF]" /><span className="text-[8px] text-[#6B7A90] font-bold">DELTA</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#303e50]" /><span className="text-[8px] text-[#6B7A90] font-bold">BASE</span></div>
+              </div>
+            </div>
+            <div className="mt-auto h-28">
+                <ChangeMagnitudeBars data={evalResults.map(r => r.change_magnitude.magnitude)} />
             </div>
           </div>
-          <div className="flex items-end justify-between flex-1 gap-2 mx-2">
-            <div className="w-5 bg-[#253245] h-[40%] rounded-t-sm hover:bg-[#4A5568] transition-colors"></div>
-            <div className="w-5 bg-[#00E5FF] h-[70%] rounded-t-sm shadow-[0_0_8px_rgba(0,229,255,0.4)] animate-pulse"></div>
-            <div className="w-5 bg-[#253245] h-[50%] rounded-t-sm hover:bg-[#4A5568] transition-colors"></div>
-            <div className="w-5 bg-[#00E5FF] h-[90%] rounded-t-sm shadow-[0_0_8px_rgba(0,229,255,0.4)] animate-pulse"></div>
-            <div className="w-5 bg-[#253245] h-[60%] rounded-t-sm hover:bg-[#4A5568] transition-colors"></div>
-            <div className="w-5 bg-[#253245] h-[30%] rounded-t-sm hover:bg-[#4A5568] transition-colors"></div>
-            <div className="w-5 bg-[#253245] h-[90%] rounded-t-sm hover:bg-[#4A5568] transition-colors"></div>
-            <div className="w-5 bg-[#00E5FF] h-[60%] rounded-t-sm shadow-[0_0_8px_rgba(0,229,255,0.4)] animate-pulse"></div>
-          </div>
-        </div>
+        </InteractiveCard>
       </div>
 
       {/* COL 3: Blast Radius Scatter */}
-      <div className="col-span-2 row-span-6 flex flex-col h-full bg-[#0D1219] border border-[#1a2230] rounded p-5 relative overflow-hidden">
-        <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4 relative z-10">BLAST RADIUS</h3>
-        
-        <div className="absolute inset-0 top-[60px] bottom-[80px] bg-[#080d12] mx-4 rounded-lg flex items-center justify-center border border-[#141b24] shadow-inner dot-pattern">
-           <div className="w-16 h-16 border border-[#2d3748]/30 rounded flex items-center justify-center relative">
-              <div className="absolute top-[-20%] left-[80%] w-2 h-2 rounded-full bg-[#ffb48f] shadow-[0_0_6px_#ffb48f] animate-pulse"></div>
-              <div className="absolute top-[80%] left-[120%] w-3 h-3 rounded-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF] animate-bounce"></div>
-              <div className="absolute top-[120%] left-[-30%] w-1.5 h-1.5 rounded-full bg-[#f8e81c] shadow-[0_0_5px_#f8e81c] animate-pulse"></div>
-              <div className="absolute top-[160%] left-[50%] w-1.5 h-1.5 rounded-full bg-[#90cdf4] shadow-[0_0_5px_#90cdf4] animate-pulse"></div>
-           </div>
-        </div>
+      <div className="col-span-2 row-span-6 flex flex-col gap-6">
+        <InteractiveCard className="h-full">
+          <div className="flex flex-col h-full bg-[#0D1219]/80 border border-[#1a2230] rounded-xl p-6 relative overflow-hidden backdrop-blur-2xl">
+            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8 uppercase">Radial Blast Analysis</h3>
+            
+            <div className="flex-1 bg-black/60 rounded-xl border border-white/5 shadow-2xl relative group ring-1 ring-[#1f3a47] overflow-hidden dot-pattern">
+              <BlastRadius3D />
+              
+              <div className="absolute top-2 left-2 bg-[#0d1219]/90 px-2 py-1 rounded border border-white/5 backdrop-blur-md pointer-events-none">
+                <span className="text-[8px] font-mono text-[#00E5FF] tracking-tighter">SIMULATING_LINEAGE_IMPACT...</span>
+              </div>
+            </div>
 
-        <div className="absolute bottom-5 left-5 right-5 flex flex-col pt-3 border-t border-[#1a2230]">
-           <span className="text-[10px] font-bold text-white mb-0.5 tracking-wider">ID: BLR-429</span>
-           <span className="text-[9px] text-[#6B7A90]">NODES IMPACTED: {evalResult?.fgs?.blast_radius ?? 18}</span>
-        </div>
+            <motion.div 
+               key={activeResult?.entity_fqn}
+               initial={{ x: 20, opacity: 0 }}
+               animate={{ x: 0, opacity: 1 }}
+               className="pt-6 mt-6 border-t border-white/5"
+            >
+               <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-black text-white tracking-widest uppercase mb-1">Impact Identifier</span>
+                  <div className="text-[#00E5FF] text-[11px] font-mono font-bold">BLR-{Math.floor(score * 4.2)}</div>
+                  <div className="flex justify-between items-end mt-2">
+                    <span className="text-[9px] text-[#6B7A90] font-bold uppercase">Blast Count</span>
+                    <span className="text-xl font-black text-white glow-text">{activeResult?.fgs?.blast_radius || 0}</span>
+                  </div>
+               </div>
+            </motion.div>
+          </div>
+        </InteractiveCard>
       </div>
 
       {/* COL 4: Decision Engine, Risk Breakdown, Suggestion */}
       <div className="col-span-3 row-span-6 flex flex-col gap-6">
         
-        <div className="panel-border rounded flex flex-col p-5 h-[320px]">
-          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8">DECISION ENGINE</h3>
-          <div className="flex flex-col items-center justify-center flex-1">
-            <span className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-2">FINAL VERDICT</span>
-            <div className={`w-[140px] h-[100px] border-2 rounded-lg flex items-center justify-center mb-6 shadow-lg ${
-              isPass ? 'border-[#00E5FF] bg-[#00E5FF]/10 shadow-[#00E5FF]/20' : 'border-[#ff5b5b] bg-[#ff5b5b]/10 shadow-[#ff5b5b]/20'
-            }`}>
-              <span className={`text-2xl font-black tracking-widest glow-text ${isPass ? 'text-[#00E5FF]' : 'text-[#ff5b5b]'}`}>
-                {isPass ? 'PASS' : 'BLOCK'}
-              </span>
+        <InteractiveCard className="h-[320px]">
+          <div className="panel-border rounded flex flex-col p-6 h-full bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
+            <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-8 uppercase">Automated Verdict Engine</h3>
+            <div className="flex flex-col items-center justify-center flex-1">
+              <span className="text-[9px] font-black tracking-widest text-[#6B7A90] mb-4 uppercase opacity-50">Policy Decision</span>
+              
+              <motion.div 
+                initial={{ rotateX: 45, opacity: 0 }}
+                animate={{ rotateX: 0, opacity: 1 }}
+                className={`w-[170px] h-[110px] border-2 rounded-xl flex flex-col items-center justify-center mb-10 shadow-3xl transition-all duration-700 relative group overflow-hidden ${
+                  isPass 
+                    ? 'border-[#00E5FF]/60 bg-[#00E5FF]/5 text-[#00E5FF] shadow-[#00f0ff]/10' 
+                    : 'border-[#ff5b5b]/60 bg-[#ff5b5b]/5 text-[#ff5b5b] shadow-[#ff5b5b]/10'
+                }`}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-1000 ${isPass ? 'from-[#00E5FF]/20 to-transparent' : 'from-[#ff5b5b]/20 to-transparent'}`} />
+                <span className="text-3xl font-black tracking-[0.3em] glow-text italic z-10 transition-all group-hover:tracking-[0.4em]">
+                  {isPass ? 'PASS' : 'BLOCK'}
+                </span>
+              </motion.div>
+
+              <div className="bg-black/40 p-4 rounded-lg border border-white/5 w-full">
+                 <p className="text-[11px] text-center text-[#e0e5ea] font-medium leading-snug">
+                   {activeResult?.fgs?.explanation || 'Awaiting telemetry synchronization...'}
+                 </p>
+              </div>
+              <div className="flex items-center gap-2 mt-4 text-[9px] font-mono font-bold tracking-widest uppercase">
+                 <span className="text-[#6B7A90]">Assurance:</span>
+                 <span className="text-[#39ff14]">92.4%</span>
+              </div>
             </div>
-            <span className="text-xs text-white font-medium mb-1">
-              {isPass ? 'Auto-approval threshold met' : 'Safety thresholds violated'}
-            </span>
-            <span className="text-[9px] font-mono text-[#6B7A90]">
-              CONFIDENCE: 92.4%
-            </span>
+          </div>
+        </InteractiveCard>
+
+        <div className="panel-border rounded flex flex-col p-6 flex-[1.5] bg-[#0d1219]/60 backdrop-blur-lg border-[#1a2230]">
+          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-6 uppercase">Risk Vector Categorization</h3>
+          <div className="flex flex-col gap-5 mt-2">
+            {[
+              { name: 'SECURITY_INTEGRITY', value: 20, level: 'LOW', color: '#00E5FF' },
+              { name: 'RESOURCE_COLLISION', value: 60, level: 'MED', color: '#fbc02d' },
+              { name: 'ORCHESTRATION_LAG', value: 15, level: 'LOW', color: '#00E5FF' },
+            ].map(risk => (
+              <div key={risk.name} className="flex flex-col gap-2">
+                <div className="flex justify-between items-center text-[10px] font-bold tracking-tighter">
+                  <span className="text-[#e0e5ea]">{risk.name}</span>
+                  <span style={{ color: risk.color }} className="text-[9px] font-black">{risk.level}</span>
+                </div>
+                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${risk.value}%` }}
+                    transition={{ duration: 1.5, ease: "circOut" }}
+                    className="h-full rounded-full shadow-lg"
+                    style={{ backgroundColor: risk.color, boxShadow: `0 0 10px ${risk.color}66` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="panel-border rounded flex flex-col p-5 flex-[1.5]">
-          <h3 className="text-[10px] font-bold tracking-widest text-[#6B7A90] mb-4">RISK BREAKDOWN</h3>
-          <div className="flex flex-col gap-4 mt-2">
-            
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-end">
-                <span className="text-[9px] font-bold tracking-wider text-[#e0e5ea]">DATA_LEAKAGE</span>
-                <span className="text-[9px] font-bold text-[#00E5FF]">LOW</span>
-              </div>
-              <div className="w-full h-[3px] bg-[#1a2230] rounded overflow-hidden">
-                <div className="h-full bg-[#00E5FF] shadow-[0_0_5px_#00E5FF]" style={{width: '20%'}}></div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-end">
-                <span className="text-[9px] font-bold tracking-wider text-[#e0e5ea]">COST_IMPACT</span>
-                <span className="text-[9px] font-bold text-[#fbc02d]">MED</span>
-              </div>
-              <div className="w-full h-[3px] bg-[#1a2230] rounded overflow-hidden">
-                <div className="h-full bg-[#fbc02d] shadow-[0_0_5px_#fbc02d]" style={{width: '60%'}}></div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-end">
-                <span className="text-[9px] font-bold tracking-wider text-[#e0e5ea]">LATENCY_DELTA</span>
-                <span className="text-[9px] font-bold text-[#00E5FF]">LOW</span>
-              </div>
-              <div className="w-full h-[3px] bg-[#1a2230] rounded overflow-hidden">
-                <div className="h-full bg-[#00E5FF] shadow-[0_0_5px_#00E5FF]" style={{width: '15%'}}></div>
-              </div>
-            </div>
-
+        <motion.div 
+          whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+          className="panel-border rounded flex flex-col p-6 flex-[1.2] relative overflow-hidden bg-gradient-to-br from-[#0c141d] to-[#010203] border-[#1a2230] group"
+        >
+          <div className="absolute top-0 left-0 w-2 h-full bg-[#00E5FF] shadow-[0_0_20px_#00E5FF]" />
+          <div className="flex items-center gap-3 mb-4">
+            <Zap className="w-4 h-4 text-[#00E5FF] fill-[#00e5ff]" />
+            <h3 className="text-[10px] font-black tracking-widest text-[#e0e5ea] uppercase">Dynamic Recommendation</h3>
           </div>
-        </div>
-
-        <div className="panel-border rounded flex flex-col p-5 flex-[1.2] relative overflow-hidden bg-gradient-to-br from-[#0c141d] to-[#0A0F15]">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[#00E5FF]"></div>
-          <div className="flex items-center gap-2 mb-3">
-            <Crosshair className="w-3 h-3 text-[#00E5FF]" />
-            <h3 className="text-[10px] font-bold tracking-widest text-[#e0e5ea]">ENGINE SUGGESTION</h3>
-          </div>
-          <p className="text-[11px] text-[#a0aab8] leading-relaxed mb-4 flex-1">
-            Consider indexing <span className="text-[#00E5FF]">shard_key_01</span> to reduce Blast Radius by 12%.
+          <p className="text-[11px] text-[#a0aab8] font-medium leading-relaxed mb-6 flex-1 italic group-hover:text-white transition-colors">
+            Heuristic detection triggered: Implement <span className="text-[#00E5FF] font-black underline underline-offset-4 decoration-[#00E5FF]/40">shard_key_01</span> partitioning to compress Blast Radius by ~<span className="text-white font-bold font-mono">12.4%</span>.
           </p>
-          <button className="neon-btn-solid w-full py-2.5 rounded text-[9px] font-bold tracking-widest border-[#00E5FF]/40 border">
-            APPLY OPTIMIZATION
-          </button>
-        </div>
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => alert('Orchestrating Optimization...')}
+            className="w-full py-3.5 rounded-xl text-[10px] font-black tracking-widest bg-[#00E5FF] text-black shadow-[0_0_30px_#00f0ff44] hover:shadow-[0_0_40px_#00f0ff66] transition-all uppercase"
+          >
+            EXECUTE OPTIMIZATION
+          </motion.button>
+        </motion.div>
 
       </div>
     </div>
