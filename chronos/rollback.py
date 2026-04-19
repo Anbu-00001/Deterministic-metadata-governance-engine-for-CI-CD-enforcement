@@ -27,7 +27,7 @@ from typing import Any
 
 from git import Repo
 
-from mcp.tools.entity_tools import patch_entity
+from mcp_server.tools.entity_tools import patch_entity
 
 logger = logging.getLogger(__name__)
 

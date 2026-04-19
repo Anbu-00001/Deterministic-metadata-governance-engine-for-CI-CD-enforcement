@@ -9,7 +9,7 @@ router = APIRouter(tags=["logs"])
 @router.get("/logs")
 async def get_logs(
     component: str | None = None,
-    level: str | None = Query(None, regex="^(INFO|WARN|ERROR)$")
+    level: str | None = Query(None, pattern="^(INFO|WARN|ERROR)$")
 ) -> list[dict[str, Any]]:
     """Return real-time diagnostic logs from the Sentinel engine."""
     # In a production scenario, this would read from a log aggregator or the engine's internal buffer.

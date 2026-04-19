@@ -22,9 +22,22 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+import json
+from pathlib import Path
 
-from mcp.tools.entity_tools import list_entities
+from mcp_server.tools.entity_tools import list_entities
 
+def log_decision(entry: dict):
+    # D:\\MY PROJECTS\\Hephaestus\\chronos...
+    log_path = Path(__file__).parent / "decision_log.json"
+    if not log_path.exists():
+        log_path.write_text("[]", encoding="utf-8")
+    try:
+        data = json.loads(log_path.read_text(encoding="utf-8"))
+        data.append(entry)
+        log_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
 
 async def capture_snapshot(label: str) -> dict[str, Any]:
     """Capture a full metadata estate snapshot.

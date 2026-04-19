@@ -59,8 +59,8 @@ async def _run_sentinel_async(
     Returns ``True`` if all entities pass, ``False`` if any are blocked.
     """
     # Lazy imports to avoid import-time network calls.
-    from mcp.tools.entity_tools import get_entity  # noqa: F811
-    from mcp.tools.lineage_tools import get_entity_lineage
+    from mcp_server.tools.entity_tools import get_entity  # noqa: F811
+    from mcp_server.tools.lineage_tools import get_entity_lineage
 
     loader = SkillsLoader()
     results: list[dict] = []
@@ -197,6 +197,22 @@ async def _run_sentinel_async(
                     {"skill": skill.name, "result": {"error": str(exc)}}
                 )
         entity_result["skills_findings"] = skills_findings
+
+        # ── AI Insight Enhancement (OPTIONAL, NON-BREAKING) ──
+        try:
+            from ai.insight_generator import generate_insight
+            ai_input = {
+                "fqn": fqn,
+                "metadata": columns_data,
+                "lineage": lineage_graph,
+                "diff": entity_result.get("change_magnitude")
+            }
+            ai_decision = entity_result.get("fgs")
+            entity_result["ai_insight"] = generate_insight(ai_input, ai_decision)
+        except Exception:
+            entity_result["ai_insight"] = {"summary": "AI unavailable", "risks": [], "suggestions": []}
+
+        results.append(entity_result)
 
         results.append(entity_result)
 

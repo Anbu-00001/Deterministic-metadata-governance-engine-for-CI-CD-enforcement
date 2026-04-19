@@ -12,10 +12,25 @@ export interface EvaluationResult {
     nodes: any[];
     edges: any[];
   };
-  decision: "APPROVE" | "REJECT" | "REVIEW" | "ESCALATE";
+  decision: "APPROVE" | "REJECT" | "REVIEW" | "ESCALATE" | "ALLOW" | "WARN" | "BLOCK";
   risk: Record<string, number>;
   suggestions: any[];
   timestamp: string;
+  ai_insight?: {
+    summary: string;
+    risks: string[];
+    suggestions: string[];
+    explanation_tree?: string[];
+  };
+  change_magnitude?: number;
+  policy_decision?: string;
+  policy_triggered?: string[];
+  confidence_score?: number;  
+  suggestions_out?: { title: string; severity: string; action: string; expected_impact: string }[];
+  simulation_out?: { current_fgs: number; projected_fgs: number; delta: number; risk_reduction: string };
+  reasoning_chain_out?: string[];
+  historical_patterns?: { pattern: string; frequency: number; risk_level: string }[];
+  predicted_risk?: { predicted_risk: string; confidence: number; reason: string };
 }
 
 interface HephaestusState {

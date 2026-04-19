@@ -132,6 +132,10 @@ class HephaestusSettings(BaseSettings):
     )
 
     # ── Derived helpers ──────────────────────────────────────
+    gemini_api_key: str | None = Field(
+        default=None,
+        description="Gemini API key for AI smart suggestions.",
+    )
 
     @property
     def openmetadata_api_url(self) -> str:

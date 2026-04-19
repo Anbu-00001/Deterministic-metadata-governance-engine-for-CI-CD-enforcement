@@ -24,7 +24,7 @@ from typing import Any
 import httpx
 
 from config import settings
-from mcp.tools.entity_tools import get_entity
+from mcp_server.tools.entity_tools import get_entity
 
 
 async def _get_client() -> httpx.AsyncClient:

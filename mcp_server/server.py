@@ -19,7 +19,7 @@ own modules; this file handles **only** server wiring.
 
 Run directly to start the server::
 
-    python -m mcp.server
+    python -m mcp_server.server
 """
 
 from __future__ import annotations
@@ -31,16 +31,16 @@ mcp_server = FastMCP("hephaestus-mcp")
 
 # ── Import tool modules so their @mcp_server.tool decorators execute ─
 # Each module registers its own tools on import via the shared server.
-from mcp.tools.entity_tools import (  # noqa: F401, E402
+from mcp_server.tools.entity_tools import (  # noqa: F401, E402
     get_entity,
     patch_entity,
     list_entities,
 )
-from mcp.tools.lineage_tools import (  # noqa: F401, E402
+from mcp_server.tools.lineage_tools import (  # noqa: F401, E402
     get_entity_lineage,
     get_downstream_nodes,
 )
-from mcp.tools.diff_tools import (  # noqa: F401, E402
+from mcp_server.tools.diff_tools import (  # noqa: F401, E402
     get_data_diff,
     compare_schemas,
 )

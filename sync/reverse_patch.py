@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from mcp.tools.entity_tools import patch_entity as _patch_entity
+from mcp_server.tools.entity_tools import patch_entity as _patch_entity
 
 logger = logging.getLogger(__name__)
 
