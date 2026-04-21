@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { T } from '../tokens';
 
 interface FieldProps {
@@ -12,7 +12,6 @@ interface FieldProps {
   hintColor?: string;
   mono?: boolean;
   right?: ReactNode;
-  focused?: boolean;
   error?: boolean;
   onChange?: (v: string) => void;
 }
@@ -26,10 +25,14 @@ export function Field({
   hintColor,
   mono,
   right,
-  focused,
   error,
   onChange,
 }: FieldProps) {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const borderColor = error ? T.err : isFocused ? T.navy : T.line;
+  const boxShadow = isFocused ? `0 0 0 3px ${T.navy}26` : 'none';
+
   return (
     <label style={{ display: 'block' }}>
       <div style={{
@@ -52,12 +55,14 @@ export function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         style={{
           width: '100%',
           height: 40,
           borderRadius: 6,
-          border: `1px solid ${error ? T.err : focused ? T.navy : T.line}`,
-          boxShadow: focused ? `0 0 0 3px ${T.navy}26` : 'none',
+          border: `1px solid ${borderColor}`,
+          boxShadow,
           background: '#fff',
           padding: '0 12px',
           fontSize: 13,
@@ -67,8 +72,6 @@ export function Field({
           boxSizing: 'border-box',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = T.navy; e.currentTarget.style.boxShadow = `0 0 0 3px ${T.navy}26`; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = error ? T.err : T.line; e.currentTarget.style.boxShadow = 'none'; }}
       />
       {hint && (
         <div style={{
