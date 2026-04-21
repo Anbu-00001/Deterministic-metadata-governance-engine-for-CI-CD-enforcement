@@ -322,13 +322,13 @@ export default function Dashboard() {
                        <div key={key} className="flex flex-col gap-2">
                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                              <span className="text-[#8A949E]">{key.replace(/_/g, ' ')}</span>
-                             <span className="text-white">{val}%</span>
+                             <span className="text-white">{String(val)}%</span>
                           </div>
                           <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                             <motion.div 
+                             <motion.div
                                initial={{ width: 0 }}
-                               animate={{ width: `${val}%` }}
-                               className={`h-full ${val > 50 ? 'bg-[#EF4444]' : val > 30 ? 'bg-[#F59E0B]' : 'bg-[#00A3FF]'}`}
+                               animate={{ width: `${Number(val)}%` }}
+                               className={`h-full ${Number(val) > 50 ? 'bg-[#EF4444]' : Number(val) > 30 ? 'bg-[#F59E0B]' : 'bg-[#00A3FF]'}`}
                              />
                           </div>
                        </div>
