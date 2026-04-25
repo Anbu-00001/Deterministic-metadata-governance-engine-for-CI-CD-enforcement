@@ -1,0 +1,25 @@
+{
+    "columns": [
+        {
+            "name": "user_id",
+            "has_description": true,
+            "has_tag": true,
+            "tier": 1,
+            "description": "Unique identifier for the user"
+        },
+        {
+            "name": "email",
+            "has_description": true,
+            "has_tag": false,
+            "tier": 2,
+            "description": "Email address of the user"
+        },
+        {
+            "name": "created_at",
+            "has_description": false,
+            "has_tag": false,
+            "tier": 3,
+            "description": ""
+        }
+    ]
+}

@@ -1,0 +1,1 @@
+{"users_model": ["marts_users_enriched", "fct_orders"], "marts_users_enriched": ["report_user_metrics"], "fct_orders": ["report_revenue"], "report_user_metrics": [], "report_revenue": []}

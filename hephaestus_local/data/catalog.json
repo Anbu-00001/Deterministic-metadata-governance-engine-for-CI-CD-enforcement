@@ -1,0 +1,16 @@
+{
+    "columns": [
+        {
+            "name": "user_id",
+            "description": "Unique identifier for the user account"
+        },
+        {
+            "name": "email",
+            "description": "Email address of the user"
+        },
+        {
+            "name": "created_at",
+            "description": "Timestamp when the user was created"
+        }
+    ]
+}
